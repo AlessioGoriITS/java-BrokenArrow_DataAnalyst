@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/battle_debrief}
+    username: ${SPRING_DATASOURCE_USERNAME:battle_debrief}
+    password: ${SPRING_DATASOURCE_PASSWORD:battle_debrief}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
