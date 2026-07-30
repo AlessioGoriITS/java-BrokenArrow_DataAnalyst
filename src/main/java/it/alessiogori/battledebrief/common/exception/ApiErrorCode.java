@@ -1,0 +1,13 @@
+package it.alessiogori.battledebrief.common.exception;
+
+public enum ApiErrorCode {
+    NOT_FOUND,
+    DUPLICATE_RESOURCE,
+    INVALID_CREDENTIALS,
+    FORBIDDEN_OPERATION,
+    EXTERNAL_PROVIDER_ERROR,
+    IMPORT_VALIDATION_ERROR,
+    VALIDATION_ERROR,
+    MALFORMED_REQUEST,
+    INTERNAL_SERVER_ERROR
+}
