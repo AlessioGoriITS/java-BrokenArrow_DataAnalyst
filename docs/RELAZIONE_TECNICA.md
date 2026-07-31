@@ -391,7 +391,7 @@ continua a funzionare sul dataset locale.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 89 test e 90,12% line coverage |
+| Coverage minima | 89 test e 90,31% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |

@@ -12,7 +12,5 @@ public interface PlayerProfileRepository
 
     Optional<PlayerProfile> findBySteamId(String steamId);
 
-    Optional<PlayerProfile> findByExternalCommanderId(String externalCommanderId);
-
     boolean existsByIdAndUserId(Long playerProfileId, Long userId);
 }

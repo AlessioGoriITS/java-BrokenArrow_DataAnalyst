@@ -19,10 +19,6 @@ public interface MatchPerformanceRepository
             Long playerProfileId
     );
 
-    List<MatchPerformance> findAllByPlayerProfileIdOrderByGameMatchStartedAtDesc(
-            Long playerProfileId
-    );
-
     List<MatchPerformance> findAllByPlayerProfileId(
             Long playerProfileId,
             Pageable pageable

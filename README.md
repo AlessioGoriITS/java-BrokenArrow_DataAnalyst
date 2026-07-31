@@ -300,7 +300,7 @@ Il report JaCoCo viene generato in:
 target/site/jacoco/index.html
 ```
 
-Gli 89 test correnti raggiungono il 90,12% di copertura delle linee e superano
+Gli 89 test correnti raggiungono il 90,31% di copertura delle linee e superano
 il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
 fallire automaticamente la build se la copertura complessiva delle linee
 scende sotto tale soglia.

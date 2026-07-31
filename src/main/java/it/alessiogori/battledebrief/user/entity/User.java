@@ -106,10 +106,6 @@ public class User {
         this.email = Objects.requireNonNull(email);
     }
 
-    public void changePasswordHash(String passwordHash) {
-        this.passwordHash = Objects.requireNonNull(passwordHash);
-    }
-
     public void changeRole(Role role) {
         this.role = Objects.requireNonNull(role);
     }
