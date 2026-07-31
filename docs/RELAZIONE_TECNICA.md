@@ -114,7 +114,10 @@ sono opzionali e non condizionano il funzionamento locale.
 - **UnitSpecifications:** filtri dinamici;
 - **CatalogDatasetInitializer:** caricamento del JSON versionato.
 
-Il catalogo locale evita dipendenze obbligatorie da servizi esterni.
+Il catalogo locale versionato comprende 420 unità e 11 specializzazioni. Viene
+generato da fonti pubbliche BArmory e BA Data tramite uno script riproducibile,
+ma l'applicazione utilizza la copia inclusa nel progetto e non dipende da tali
+servizi durante il normale funzionamento.
 
 ### 5.4 match
 

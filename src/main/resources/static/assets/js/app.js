@@ -25,6 +25,9 @@ const escapeHtml = value => String(value ?? "")
     .replaceAll("'", "&#039;");
 
 const formatNumber = value => new Intl.NumberFormat("it-IT").format(value ?? 0);
+const formatOptionalNumber = value => value === null || value === undefined
+    ? "—"
+    : formatNumber(value);
 const formatDecimal = (value, digits = 2) => value === null || value === undefined
     ? "—"
     : Number(value).toLocaleString("it-IT", { maximumFractionDigits: digits });
@@ -47,7 +50,7 @@ const metricClass = metric => metricNumber(metric) === null
 const categoryGlyph = category => ({
     TANK: "TNK", IFV: "IFV", RECON: "RCN", ARTILLERY: "ART",
     AIR_DEFENSE: "ADA", INFANTRY: "INF", HELICOPTER: "HEL",
-    AIRCRAFT: "AIR", SUPPORT: "SUP", VEHICLE: "VHC"
+    AIRCRAFT: "AIR", SUPPORT: "SUP", VEHICLE: "VHC", LOGISTICS: "LOG"
 }[category] || String(category || "UNIT").slice(0, 3));
 
 function showToast(message, type = "info") {
@@ -276,7 +279,7 @@ function unitCard(unit) {
             <div class="unit-visual">${image}<span class="unit-category">${escapeHtml(unit.category.replaceAll("_", " "))}</span><span class="unit-faction">${escapeHtml(unit.faction)}</span></div>
             <div class="unit-card-body">
                 <h3>${escapeHtml(unit.name)}</h3><span class="unit-code">${escapeHtml(unit.externalUnitId)}</span>
-                <div class="unit-stats"><div><span>HP</span><strong>${formatNumber(unit.hitPoints)}</strong></div><div><span>SPEED</span><strong>${formatDecimal(unit.speed, 1)}</strong></div><div><span>ARMOR</span><strong>${escapeHtml(unit.armor || "—")}</strong></div></div>
+                <div class="unit-stats"><div><span>HP</span><strong>${formatOptionalNumber(unit.hitPoints)}</strong></div><div><span>SPEED</span><strong>${formatDecimal(unit.speed, 1)}</strong></div><div><span>ARMOR</span><strong>${escapeHtml(unit.armor || "—")}</strong></div></div>
                 <div class="unit-card-foot"><span>${escapeHtml(unit.mainWeapon || "Sistema non censito")}</span><strong>${formatNumber(unit.baseCost)}<small> PT</small></strong></div>
             </div>
         </article>`;
@@ -327,7 +330,7 @@ async function openUnitDrawer(unitId) {
             <p class="drawer-description">${escapeHtml(unit.description || "Asset del catalogo operativo Battle Debrief.")}</p>
             <div class="drawer-stats">
                 ${drawerStat("COSTO", `${formatNumber(unit.baseCost)} PT`)}
-                ${drawerStat("HIT POINTS", formatNumber(unit.hitPoints))}
+                ${drawerStat("HIT POINTS", formatOptionalNumber(unit.hitPoints))}
                 ${drawerStat("VELOCITÀ", formatDecimal(unit.speed, 1))}
                 ${drawerStat("CORAZZATURA", unit.armor || "—")}
                 ${drawerStat("ARMA PRINCIPALE", unit.mainWeapon || "—")}

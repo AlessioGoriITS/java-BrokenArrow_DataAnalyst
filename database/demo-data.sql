@@ -136,27 +136,27 @@ WHERE user_account.username = 'analyst'
 -- Minimal catalog subset used by the demo telemetry below. The application
 -- initializer completes the catalog from the versioned JSON dataset.
 INSERT INTO specializations (name, faction, description)
-SELECT 'US Armored Brigade', 'USA',
+SELECT 'Armored Brigade', 'USA',
        'Heavy combined-arms formation centered on Abrams tanks.'
 WHERE NOT EXISTS (
     SELECT 1 FROM specializations
-    WHERE name = 'US Armored Brigade' AND faction = 'USA'
+    WHERE name = 'Armored Brigade' AND faction = 'USA'
 );
 
 INSERT INTO specializations (name, faction, description)
-SELECT 'US Airborne Brigade', 'USA',
+SELECT 'Airborne infantry', 'USA',
        'Rapid-deployment formation supported by helicopters.'
 WHERE NOT EXISTS (
     SELECT 1 FROM specializations
-    WHERE name = 'US Airborne Brigade' AND faction = 'USA'
+    WHERE name = 'Airborne infantry' AND faction = 'USA'
 );
 
 INSERT INTO specializations (name, faction, description)
-SELECT 'RU Guards Tank Brigade', 'RUS',
+SELECT 'Guard Tank Brigade', 'RUS',
        'Armored formation built around main battle tanks.'
 WHERE NOT EXISTS (
     SELECT 1 FROM specializations
-    WHERE name = 'RU Guards Tank Brigade' AND faction = 'RUS'
+    WHERE name = 'Guard Tank Brigade' AND faction = 'RUS'
 );
 
 INSERT INTO game_units (
@@ -165,7 +165,7 @@ INSERT INTO game_units (
 )
 SELECT 'usa_m1a1_abrams', 'M1A1 Abrams', 'USA', 'TANK', 240,
        'Main battle tank with strong frontal protection.',
-       1350, 52.00, 'HEAVY', '120 mm M256', 'demo-2026.1'
+       1350, 52.00, 'HEAVY', '120 mm M256', 'barmory-8.4-2026.07'
 WHERE NOT EXISTS (
     SELECT 1 FROM game_units WHERE external_unit_id = 'usa_m1a1_abrams'
 );
@@ -176,7 +176,7 @@ INSERT INTO game_units (
 )
 SELECT 'usa_m2a2_bradley', 'M2A2 Bradley', 'USA', 'IFV', 150,
        'Mechanized infantry fighting vehicle.',
-       850, 61.00, 'MEDIUM', '25 mm M242 Bushmaster', 'demo-2026.1'
+       850, 61.00, 'MEDIUM', '25 mm M242 Bushmaster', 'barmory-8.4-2026.07'
 WHERE NOT EXISTS (
     SELECT 1 FROM game_units WHERE external_unit_id = 'usa_m2a2_bradley'
 );
@@ -187,7 +187,7 @@ INSERT INTO game_units (
 )
 SELECT 'usa_ah64d_apache', 'AH-64D Apache', 'USA', 'HELICOPTER', 220,
        'Attack helicopter optimized for anti-armor missions.',
-       620, 78.00, 'LIGHT', 'AGM-114 Hellfire', 'demo-2026.1'
+       620, 78.00, 'LIGHT', 'AGM-114 Hellfire', 'barmory-8.4-2026.07'
 WHERE NOT EXISTS (
     SELECT 1 FROM game_units WHERE external_unit_id = 'usa_ah64d_apache'
 );
@@ -198,7 +198,7 @@ INSERT INTO game_units (
 )
 SELECT 'rus_t90a', 'T-90A', 'RUS', 'TANK', 235,
        'Russian main battle tank with layered protection.',
-       1320, 50.00, 'HEAVY', '125 mm 2A46M', 'demo-2026.1'
+       1320, 50.00, 'HEAVY', '125 mm 2A46M', 'barmory-8.4-2026.07'
 WHERE NOT EXISTS (
     SELECT 1 FROM game_units WHERE external_unit_id = 'rus_t90a'
 );
@@ -207,7 +207,7 @@ INSERT INTO unit_specializations (unit_id, specialization_id)
 SELECT unit.id, specialization.id
 FROM game_units unit, specializations specialization
 WHERE unit.external_unit_id IN ('usa_m1a1_abrams', 'usa_m2a2_bradley')
-  AND specialization.name = 'US Armored Brigade'
+  AND specialization.name = 'Armored Brigade'
   AND specialization.faction = 'USA'
   AND NOT EXISTS (
       SELECT 1 FROM unit_specializations relation
@@ -219,7 +219,7 @@ INSERT INTO unit_specializations (unit_id, specialization_id)
 SELECT unit.id, specialization.id
 FROM game_units unit, specializations specialization
 WHERE unit.external_unit_id = 'usa_ah64d_apache'
-  AND specialization.name = 'US Airborne Brigade'
+  AND specialization.name = 'Airborne infantry'
   AND specialization.faction = 'USA'
   AND NOT EXISTS (
       SELECT 1 FROM unit_specializations relation
@@ -231,7 +231,7 @@ INSERT INTO unit_specializations (unit_id, specialization_id)
 SELECT unit.id, specialization.id
 FROM game_units unit, specializations specialization
 WHERE unit.external_unit_id = 'rus_t90a'
-  AND specialization.name = 'RU Guards Tank Brigade'
+  AND specialization.name = 'Guard Tank Brigade'
   AND specialization.faction = 'RUS'
   AND NOT EXISTS (
       SELECT 1 FROM unit_specializations relation

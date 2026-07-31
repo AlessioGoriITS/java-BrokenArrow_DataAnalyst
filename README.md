@@ -18,7 +18,7 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - registrazione e autenticazione locale tramite JWT;
 - ruoli `USER` e `ADMIN`;
 - gestione degli utenti e dei profili giocatore;
-- catalogo pubblico di unità e specializzazioni;
+- catalogo pubblico completo con 420 unità e 11 specializzazioni;
 - CRUD amministrativo del catalogo;
 - caricamento automatico di un catalogo JSON versionato;
 - importazione transazionale della match history in formato JSON;
@@ -209,6 +209,11 @@ Le password sono salvate nel database esclusivamente come hash BCrypt. Questi
 account sono destinati soltanto alla dimostrazione locale.
 Il sito propone automaticamente l'account `demo`, che dispone di sei partite
 dimostrative per rendere subito visibili grafici e statistiche.
+
+Il catalogo locale comprende il roster e le varianti pubbliche censite da
+BArmory e BA Data. La provenienza e lo script di sincronizzazione riproducibile
+sono documentati in `docs/CATALOG_SOURCES.md`. Il funzionamento normale resta
+offline: le fonti esterne sono necessarie soltanto per rigenerare il dataset.
 
 ## API principali
 

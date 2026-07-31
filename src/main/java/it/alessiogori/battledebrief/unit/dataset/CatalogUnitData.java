@@ -1,7 +1,6 @@
 package it.alessiogori.battledebrief.unit.dataset;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -21,7 +20,7 @@ public record CatalogUnitData(
         @Size(max = 100) String armor,
         @Size(max = 200) String mainWeapon,
         @Size(max = 2048) String imageUrl,
-        @NotEmpty List<@NotBlank String> specializations
+        @NotNull List<@NotBlank String> specializations
 ) {
 
     public CatalogUnitData {
