@@ -215,6 +215,86 @@ class PlayerUnitAnalyticsApiTests {
                         .value("NO_DAMAGE_RECEIVED"));
     }
 
+    @Test
+    void unitMatchHistoryIsPagedNewestFirstAndSecured() throws Exception {
+        persistMatch(
+                ownerProfile,
+                "unit-history-older",
+                Instant.parse("2026-07-28T18:00:00Z"),
+                unitPerformance(abrams, 250, 4, 1, 3, 1_000, 800, 400, 30)
+        );
+        persistMatch(
+                ownerProfile,
+                "unit-history-newer",
+                Instant.parse("2026-07-30T18:00:00Z"),
+                unitPerformance(abrams, 300, 2, 0, 1, 200, 200, 0, 20)
+        );
+
+        mockMvc.perform(get(
+                                "/api/players/{playerId}/units/{unitId}/matches",
+                                ownerProfile.getId(),
+                                abrams.getId()
+                        )
+                        .queryParam("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].externalMatchId")
+                        .value("unit-history-newer"))
+                .andExpect(jsonPath("$.content[0].deploymentCost").value(600))
+                .andExpect(jsonPath("$.content[0].lostValue").value(0))
+                .andExpect(jsonPath("$.content[0].economicKd.status")
+                        .value("NO_LOSSES"))
+                .andExpect(jsonPath("$.content[0].deploymentEfficiency.value")
+                        .value(0.3333))
+                .andExpect(jsonPath("$.content[0].survivalRate.value")
+                        .value(100.0))
+                .andExpect(jsonPath("$.content[0].damageRatio.status")
+                        .value("NO_DAMAGE_RECEIVED"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+
+        mockMvc.perform(get(
+                                "/api/players/{playerId}/units/{unitId}/matches",
+                                ownerProfile.getId(),
+                                abrams.getId()
+                        )
+                        .queryParam("page", "1")
+                        .queryParam("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].externalMatchId")
+                        .value("unit-history-older"));
+
+        mockMvc.perform(get(
+                                "/api/players/{playerId}/units/{unitId}/matches",
+                                ownerProfile.getId(),
+                                abrams.getId()
+                        )
+                        .header(HttpHeaders.AUTHORIZATION, bearer(otherToken)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get(
+                                "/api/players/{playerId}/units/{unitId}/matches",
+                                ownerProfile.getId(),
+                                abrams.getId()
+                        )
+                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        mockMvc.perform(get(
+                                "/api/players/{playerId}/units/{unitId}/matches",
+                                ownerProfile.getId(),
+                                humvee.getId()
+                        )
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
     private UnitMatchPerformance unitPerformance(
             Unit unit,
             int cost,

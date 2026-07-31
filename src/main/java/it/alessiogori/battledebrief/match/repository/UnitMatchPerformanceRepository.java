@@ -2,6 +2,8 @@ package it.alessiogori.battledebrief.match.repository;
 
 import it.alessiogori.battledebrief.analytics.repository.PlayerUnitAggregate;
 import it.alessiogori.battledebrief.match.entity.UnitMatchPerformance;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +19,18 @@ public interface UnitMatchPerformanceRepository
     );
 
     List<UnitMatchPerformance> findAllByMatchPerformancePlayerProfileIdAndUnitId(
+            Long playerProfileId,
+            Long unitId
+    );
+
+    Page<UnitMatchPerformance>
+    findAllByMatchPerformancePlayerProfileIdAndUnitId(
+            Long playerProfileId,
+            Long unitId,
+            Pageable pageable
+    );
+
+    boolean existsByMatchPerformancePlayerProfileIdAndUnitId(
             Long playerProfileId,
             Long unitId
     );

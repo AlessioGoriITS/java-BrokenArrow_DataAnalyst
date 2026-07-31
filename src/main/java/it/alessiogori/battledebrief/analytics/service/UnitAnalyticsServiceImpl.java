@@ -2,10 +2,16 @@ package it.alessiogori.battledebrief.analytics.service;
 
 import it.alessiogori.battledebrief.analytics.dto.AnalyticsStatus;
 import it.alessiogori.battledebrief.analytics.dto.PlayerUnitAnalysisResponse;
+import it.alessiogori.battledebrief.analytics.dto.PlayerUnitMatchResponse;
 import it.alessiogori.battledebrief.analytics.repository.PlayerUnitAggregate;
+import it.alessiogori.battledebrief.common.dto.PageResponse;
 import it.alessiogori.battledebrief.common.exception.ResourceNotFoundException;
+import it.alessiogori.battledebrief.match.entity.GameMatch;
+import it.alessiogori.battledebrief.match.entity.MatchPerformance;
+import it.alessiogori.battledebrief.match.entity.UnitMatchPerformance;
 import it.alessiogori.battledebrief.match.repository.UnitMatchPerformanceRepository;
 import it.alessiogori.battledebrief.player.repository.PlayerProfileRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +59,32 @@ public class UnitAnalyticsServiceImpl implements UnitAnalyticsService {
                 ));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PlayerUnitMatchResponse> findUnitMatches(
+            Long playerProfileId,
+            Long unitId,
+            Pageable pageable
+    ) {
+        requirePlayer(playerProfileId);
+        if (!performanceRepository
+                .existsByMatchPerformancePlayerProfileIdAndUnitId(
+                        playerProfileId,
+                        unitId
+                )) {
+            throw new ResourceNotFoundException(
+                    "Unit performance not found for player"
+            );
+        }
+        return PageResponse.from(performanceRepository
+                .findAllByMatchPerformancePlayerProfileIdAndUnitId(
+                        playerProfileId,
+                        unitId,
+                        pageable
+                )
+                .map(this::toMatchResponse));
+    }
+
     private PlayerUnitAnalysisResponse toResponse(
             PlayerUnitAggregate aggregate
     ) {
@@ -93,6 +125,63 @@ public class UnitAnalyticsServiceImpl implements UnitAnalyticsService {
                 calculator.percentage(
                         spawned - lost,
                         spawned,
+                        AnalyticsStatus.NO_DEPLOYMENTS
+                ),
+                calculator.ratio(
+                        damageDealt,
+                        damageReceived,
+                        AnalyticsStatus.NO_DAMAGE_RECEIVED
+                )
+        );
+    }
+
+    private PlayerUnitMatchResponse toMatchResponse(
+            UnitMatchPerformance performance
+    ) {
+        MatchPerformance playerPerformance =
+                performance.getMatchPerformance();
+        GameMatch match = playerPerformance.getGameMatch();
+        long deploymentCost = (long) performance.getUnitCost()
+                * performance.getSpawnedCount();
+        long lostValue = (long) performance.getUnitCost()
+                * performance.getLostCount();
+        long damageDealt = value(performance.getDamageDealt());
+        long damageReceived = value(performance.getDamageReceived());
+
+        return new PlayerUnitMatchResponse(
+                match.getId(),
+                match.getExternalMatchId(),
+                match.getMapName(),
+                match.getStartedAt(),
+                playerPerformance.isWon(),
+                playerPerformance.getNewRating(),
+                performance.getUnit().getId(),
+                performance.getUnit().getExternalUnitId(),
+                performance.getUnit().getName(),
+                performance.getUnitCost(),
+                performance.getSpawnedCount(),
+                performance.getLostCount(),
+                performance.getKillsCount(),
+                performance.getDestroyedValue(),
+                deploymentCost,
+                lostValue,
+                performance.getDamageDealt(),
+                performance.getDamageReceived(),
+                performance.getSupplyConsumed(),
+                calculator.ratio(
+                        performance.getDestroyedValue(),
+                        lostValue,
+                        AnalyticsStatus.NO_LOSSES
+                ),
+                calculator.ratio(
+                        performance.getDestroyedValue(),
+                        deploymentCost,
+                        AnalyticsStatus.NO_DEPLOYMENTS
+                ),
+                calculator.percentage(
+                        performance.getSpawnedCount()
+                                - performance.getLostCount(),
+                        performance.getSpawnedCount(),
                         AnalyticsStatus.NO_DEPLOYMENTS
                 ),
                 calculator.ratio(
