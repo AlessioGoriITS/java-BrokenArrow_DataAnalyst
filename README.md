@@ -1,7 +1,8 @@
 # Battle Debrief
 
-Battle Debrief è un backend REST per importare e analizzare le prestazioni dei
-giocatori di *Broken Arrow*. L'applicazione confronta il valore delle unità
+Battle Debrief è un'applicazione web con backend REST per importare e
+analizzare le prestazioni dei giocatori di *Broken Arrow*. L'applicazione
+confronta il valore delle unità
 schierate e perse con quello delle unità avversarie distrutte, sia per singolo
 giocatore sia sull'intero dataset locale.
 
@@ -10,6 +11,10 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 
 ## Funzionalità
 
+- dashboard web responsive servita direttamente da Spring Boot;
+- Hangar con ricerca, filtri, paginazione e dettaglio degli asset;
+- visualizzazioni aggregate per unità, mappe e specializzazioni;
+- area personale con KPI, andamento ELO e after-action report;
 - registrazione e autenticazione locale tramite JWT;
 - ruoli `USER` e `ADMIN`;
 - gestione degli utenti e dei profili giocatore;
@@ -39,6 +44,7 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - JUnit 5, MockMvc e AssertJ;
 - JaCoCo;
 - Docker e Docker Compose;
+- HTML, CSS e JavaScript senza dipendenze runtime esterne;
 - Postman.
 
 ## Architettura
@@ -55,6 +61,10 @@ src/main/java/it/alessiogori/battledebrief
 ├── player       # profili giocatore
 ├── unit         # catalogo unità e specializzazioni
 └── user         # gestione utenti e ruoli
+
+src/main/resources/static
+├── index.html   # applicazione web
+└── assets       # stile, client API e grafici Canvas
 ```
 
 I moduli applicativi sono separati in Controller, Service, Repository, Entity e
@@ -120,7 +130,7 @@ docker compose up --build
 
 Servizi disponibili:
 
-- API: `http://localhost:8080`;
+- sito e API: `http://localhost:8080`;
 - health check: `http://localhost:8080/actuator/health`;
 - MySQL: `localhost:3306`.
 
@@ -143,8 +153,9 @@ interno.
 
 ### Smoke test Docker
 
-Su Windows è disponibile uno script che costruisce lo stack, attende gli health
-check, verifica login admin e catalogo e infine arresta i container:
+Su Windows è disponibile uno script che costruisce lo stack, attende gli
+health check, verifica frontend, login admin e catalogo e infine arresta i
+container:
 
 ```powershell
 .\scripts\docker-smoke-test.ps1 -ResetData
@@ -196,6 +207,8 @@ non viene generato automaticamente dall'applicazione.
 
 Le password sono salvate nel database esclusivamente come hash BCrypt. Questi
 account sono destinati soltanto alla dimostrazione locale.
+Il sito propone automaticamente l'account `demo`, che dispone di sei partite
+dimostrative per rendere subito visibili grafici e statistiche.
 
 ## API principali
 

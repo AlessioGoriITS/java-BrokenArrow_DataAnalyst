@@ -59,6 +59,14 @@ try {
     Invoke-DockerCompose -Command @('up', '--build', '--detach')
     Wait-ForApplication
 
+    $frontend = Invoke-WebRequest `
+        -Uri 'http://localhost:8080/' `
+        -UseBasicParsing
+    if ($frontend.StatusCode -ne 200 `
+            -or $frontend.Content -notmatch 'BATTLE') {
+        throw 'Frontend did not return the Battle Debrief application'
+    }
+
     $loginBody = @{
         username = 'admin'
         password = 'Admin123!'
@@ -80,6 +88,7 @@ try {
 
     Write-Host 'Docker smoke test passed:'
     Write-Host '  application health: UP'
+    Write-Host '  frontend: OK'
     Write-Host '  admin login: OK'
     Write-Host "  catalog units: $($catalog.totalElements)"
 } finally {

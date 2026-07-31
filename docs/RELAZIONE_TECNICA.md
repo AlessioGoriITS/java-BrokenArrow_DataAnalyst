@@ -7,8 +7,9 @@
 
 ## 1. Introduzione
 
-Battle Debrief è un backend REST per la raccolta e l'analisi delle prestazioni
-dei giocatori di *Broken Arrow*. Il sistema gestisce utenti e profili, importa
+Battle Debrief è un'applicazione web con backend REST per la raccolta e
+l'analisi delle prestazioni dei giocatori di *Broken Arrow*. Il sistema gestisce
+utenti e profili, importa
 partite, espone lo storico, amministra un catalogo di unità e calcola statistiche
 personali e aggregate sul dataset locale.
 
@@ -31,9 +32,9 @@ Gli obiettivi sono:
 - rendere l'ambiente riproducibile tramite Docker;
 - fornire SQL, dati demo e Collection Postman.
 
-Frontend, microservizi, Steam OpenID e provider esterni non documentati non
-rientrano nei requisiti obbligatori. L'importazione JSON rende l'applicazione
-utilizzabile offline.
+Microservizi, Steam OpenID e provider esterni non documentati non rientrano nei
+requisiti obbligatori. L'importazione JSON e il frontend integrato rendono
+l'applicazione utilizzabile offline.
 
 ## 3. Tecnologie
 
@@ -52,13 +53,17 @@ utilizzabile offline.
 | Coverage | JaCoCo | copertura del codice |
 | Container | Docker e Docker Compose | app e database |
 | Client API | Postman | esecuzione dei flussi REST |
+| Frontend | HTML, CSS, JavaScript, Canvas | dashboard web responsive |
 
 ## 4. Architettura
 
 L'applicazione segue una struttura a livelli per modulo.
 
 ~~~text
-HTTP request
+Browser ---> frontend statico
+                |
+                v
+HTTP request ---> API REST
     |
     v
 Controller ---> DTO e validazione
@@ -141,7 +146,22 @@ a ogni specializzazione associata. Partite e vittorie sono conteggiate in modo
 distinto all'interno di ciascun gruppo, evitando duplicazioni quando vengono
 schierate più unità della stessa specializzazione.
 
-### 5.6 common
+### 5.6 frontend
+
+Il frontend single-page è servito dalle risorse statiche di Spring Boot e non
+richiede un container o un package manager separato. Comprende:
+
+- Command dashboard con indicatori sintetici e ranking;
+- Hangar filtrabile con paginazione e schede di dettaglio;
+- tabelle analytics per unità, mappe e specializzazioni;
+- login JWT e area personale con ELO, storico e unità utilizzate;
+- grafici Canvas, layout responsive e stati vuoti espliciti.
+
+Il client usa esclusivamente gli endpoint REST documentati. Il token viene
+conservato nella sessione del browser; autorizzazione e ownership restano
+verificate dal backend.
+
+### 5.7 common
 
 - **PageResponse:** formato stabile di paginazione;
 - **ApiException:** errori applicativi tipizzati;
@@ -253,21 +273,22 @@ La sintassi Compose è stata validata. L'esecuzione completa richiede Docker
 Engine attivo e si avvia con docker compose up --build.
 
 Lo script scripts/docker-smoke-test.ps1 automatizza build, attesa degli health
-check, login amministrativo, verifica del catalogo e arresto dei container.
+check, verifica del frontend, login amministrativo, verifica del catalogo e
+arresto dei container.
 
 ## 12. Testing
 
 La suite comprende test del calcolatore, Service, Repository, relazioni JPA,
-JWT, autorizzazioni, filtri, paginazione, Controller REST, schema SQL, dati demo
-e health endpoint.
+JWT, autorizzazioni, filtri, paginazione, Controller REST, schema SQL, dati demo,
+frontend pubblico e health endpoint.
 
 I test usano H2 in modalità MySQL e non dipendono dalla rete.
 
 ~~~text
-Test: 79
+Test: 82
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 94,57%
+Copertura linee JaCoCo: 94,58%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -300,7 +321,6 @@ Possibili sviluppi futuri:
 - provider esterno documentato;
 - ranking dei giocatori per unità;
 - ricostruzione parziale dei deck;
-- frontend grafico;
 - migrazioni Flyway;
 - test Docker end-to-end in CI.
 
@@ -322,7 +342,7 @@ affidabilità e riproducibilità.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 79 test e 94,57% line coverage |
+| Coverage minima | 82 test e 94,58% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |
