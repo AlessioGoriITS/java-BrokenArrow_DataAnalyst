@@ -341,7 +341,7 @@ async function openUnitDrawer(unitId) {
     try {
         const unit = await api.unit(unitId);
         const image = unit.imageUrl
-            ? `<img src="${escapeHtml(unit.imageUrl)}" alt="" style="width:100%;height:100%;object-fit:cover">`
+            ? `<img src="${escapeHtml(unit.imageUrl)}" alt="">`
             : `<span class="unit-glyph">${escapeHtml(categoryGlyph(unit.category))}</span>`;
         $("#unit-drawer-content").innerHTML = `
             <div class="drawer-visual">${image}</div>
