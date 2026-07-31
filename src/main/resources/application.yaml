@@ -17,6 +17,8 @@ integration:
   barmory:
     base-url: ${BARMORY_BASE_URL:https://barmory.net}
     version: ${BARMORY_VERSION:8.4}
+  battlegroup:
+    base-url: ${BATTLEGROUP_BASE_URL:https://battlegroup.website/cgi-bin/api.py}
 
 security:
   jwt:

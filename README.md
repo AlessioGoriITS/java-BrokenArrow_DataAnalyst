@@ -16,7 +16,7 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - visualizzazioni aggregate per unità, mappe e specializzazioni;
 - area personale pubblica tramite Steam ID con KPI, andamento ELO e
   after-action report;
-- integrazione live con il provider comunitario BArmory;
+- integrazione live con BArmory e fallback automatico BattleGroup;
 - registrazione, JWT e ruoli `USER`/`ADMIN` disponibili nelle API backend per
   dimostrare i requisiti di sicurezza;
 - gestione degli utenti e dei profili giocatore;

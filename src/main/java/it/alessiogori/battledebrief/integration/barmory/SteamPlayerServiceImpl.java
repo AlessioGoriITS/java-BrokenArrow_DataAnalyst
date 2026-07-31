@@ -1,6 +1,7 @@
 package it.alessiogori.battledebrief.integration.barmory;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import it.alessiogori.battledebrief.common.exception.ExternalProviderException;
 import it.alessiogori.battledebrief.common.exception.ResourceNotFoundException;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamCareerResponse;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamMatchResponse;
@@ -29,21 +30,36 @@ import java.util.Set;
 public class SteamPlayerServiceImpl implements SteamPlayerService {
 
     private final BarmoryGateway gateway;
+    private final BattleGroupGateway battleGroupGateway;
     private final UnitRepository unitRepository;
     private final Clock clock;
 
     public SteamPlayerServiceImpl(
             BarmoryGateway gateway,
+            BattleGroupGateway battleGroupGateway,
             UnitRepository unitRepository,
             Clock clock
     ) {
         this.gateway = gateway;
+        this.battleGroupGateway = battleGroupGateway;
         this.unitRepository = unitRepository;
         this.clock = clock;
     }
 
     @Override
     public SteamPlayerResponse findBySteamId(
+            String steamId,
+            int weeks,
+            int limit
+    ) {
+        try {
+            return findOnBarmory(steamId, weeks, limit);
+        } catch (ExternalProviderException exception) {
+            return findOnBattleGroup(steamId, limit);
+        }
+    }
+
+    private SteamPlayerResponse findOnBarmory(
             String steamId,
             int weeks,
             int limit
@@ -76,7 +92,79 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 career(stats),
                 matches,
                 aggregateUnits(rawMatches, commanderId),
+                "BARMORY",
                 instant(stats, "updateDate")
+        );
+    }
+
+    private SteamPlayerResponse findOnBattleGroup(String steamId, int limit) {
+        JsonNode response = battleGroupGateway.findPlayerStats(steamId);
+        if (!response.path("found").asBoolean(false)) {
+            throw new ResourceNotFoundException(
+                    "No Broken Arrow commander found for this Steam ID"
+            );
+        }
+        JsonNode user = response.path("user");
+        JsonNode stats = response.path("stats");
+        List<SteamMatchResponse> matches = new ArrayList<>();
+        response.path("recent").forEach(match -> {
+            BigDecimal oldRating = decimal(match, "oldRating");
+            BigDecimal change = decimal(match, "ratingChange");
+            BigDecimal newRating = oldRating == null || change == null
+                    ? null
+                    : oldRating.add(change);
+            matches.add(new SteamMatchResponse(
+                    match.path("fightId").asLong(),
+                    0,
+                    text(match, "mapName", "Unknown map"),
+                    "win".equalsIgnoreCase(match.path("result").asText()),
+                    0,
+                    0,
+                    Instant.ofEpochSecond(match.path("endTime").asLong()),
+                    oldRating,
+                    newRating,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+            ));
+        });
+        List<SteamMatchResponse> recentMatches = matches.stream()
+                .sorted(Comparator.comparing(SteamMatchResponse::endedAt).reversed())
+                .limit(limit)
+                .toList();
+        int fights = integer(stats, "fightsCount", 0);
+        int wins = integer(stats, "winsCount", 0);
+        SteamCareerResponse career = new SteamCareerResponse(
+                fights,
+                wins,
+                integer(stats, "losesCount", Math.max(0, fights - wins)),
+                0,
+                integer(stats, "killsCount", 0),
+                integer(stats, "deathsCount", 0),
+                decimal(stats, "kdRatio"),
+                fights == 0 ? null : BigDecimal.valueOf(wins * 100L)
+                        .divide(BigDecimal.valueOf(fights), 2, RoundingMode.HALF_UP),
+                stats.path("totalMatchTimeSec").asLong(0),
+                integer(stats, "capturedZonesCount", 0),
+                0,
+                0
+        );
+        return new SteamPlayerResponse(
+                steamId,
+                user.path("id").asLong(),
+                text(response.path("steam"), "personaName",
+                        text(user, "name", "Commander")),
+                integer(user, "level", 0),
+                decimal(user, "rating"),
+                integer(user, "rank", 0),
+                career,
+                recentMatches,
+                List.of(),
+                "BATTLEGROUP",
+                clock.instant()
         );
     }
 

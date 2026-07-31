@@ -514,7 +514,7 @@ async function loadPlayerConsole(steamId) {
 function renderPlayerHeader(profile) {
     $("#player-avatar").textContent = initials(profile.displayName);
     $("#player-display-name").textContent = profile.displayName;
-    $("#player-handle").textContent = `STEAM ${profile.steamId} · LVL ${profile.level} · RANK #${profile.leaderboardRank || "—"}`;
+    $("#player-handle").textContent = `STEAM ${profile.steamId} · LVL ${profile.level} · RANK #${profile.leaderboardRank || "—"} · ${profile.source}`;
     $("#player-current-elo").textContent = formatDecimal(profile.currentRating, 0);
     const matches = profile.recentMatches;
     const latest = matches[0];

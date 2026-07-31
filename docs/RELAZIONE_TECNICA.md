@@ -43,7 +43,7 @@ Gli obiettivi sono:
 
 I microservizi non rientrano nell'implementazione. Catalogo e analytics locali
 restano utilizzabili offline; il solo debrief tramite Steam ID richiede la
-disponibilità dell'API comunitaria BArmory.
+  disponibilità di almeno uno dei provider comunitari BArmory e BattleGroup.
 
 ## 3. Tecnologie
 
@@ -164,6 +164,8 @@ schierate più unità della stessa specializzazione.
 - **BarmoryRestClient:** client HTTP, attestazione e rinnovo del token tecnico;
 - **SteamPlayerService:** recupero e aggregazione di carriera, match e unità;
 - **SteamPlayerController:** endpoint pubblico validato per Steam ID;
+- **BattleGroupRestClient:** fallback automatico quando BArmory rifiuta o non
+  completa la richiesta;
 - i DTO del modulo isolano il formato esterno dal contratto REST locale.
 
 L'integrazione applica un anti-corruption layer: eventuali variazioni dei JSON
@@ -492,6 +494,7 @@ e contiene anche il caso negativo di Steam ID non valido.
 ## 19. Fonti dati esterne
 
 - BArmory: `https://www.barmory.net`;
+- BattleGroup: `https://battlegroup.website`;
 - BA Data, Hangar: `https://ba.puliaev.com/hangar`.
 
 Sono progetti comunitari non affiliati agli sviluppatori di *Broken Arrow*.

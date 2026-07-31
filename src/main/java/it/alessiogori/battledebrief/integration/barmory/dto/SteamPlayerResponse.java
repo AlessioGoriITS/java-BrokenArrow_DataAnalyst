@@ -14,6 +14,7 @@ public record SteamPlayerResponse(
         SteamCareerResponse career,
         List<SteamMatchResponse> recentMatches,
         List<SteamUnitPerformanceResponse> mostUsedUnits,
+        String source,
         Instant sourceUpdatedAt
 ) {
 }

@@ -2,6 +2,7 @@ package it.alessiogori.battledebrief.integration.barmory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.alessiogori.battledebrief.common.exception.ExternalProviderException;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamPlayerResponse;
 import it.alessiogori.battledebrief.unit.entity.Unit;
 import it.alessiogori.battledebrief.unit.repository.UnitRepository;
@@ -22,15 +23,18 @@ class SteamPlayerServiceImplTests {
     private static final String STEAM_ID = "76561198157609957";
     private final ObjectMapper mapper = new ObjectMapper();
     private BarmoryGateway gateway;
+    private BattleGroupGateway battleGroupGateway;
     private UnitRepository unitRepository;
     private SteamPlayerService service;
 
     @BeforeEach
     void setUp() {
         gateway = mock(BarmoryGateway.class);
+        battleGroupGateway = mock(BattleGroupGateway.class);
         unitRepository = mock(UnitRepository.class);
         service = new SteamPlayerServiceImpl(
                 gateway,
+                battleGroupGateway,
                 unitRepository,
                 Clock.fixed(Instant.parse("2026-07-31T12:00:00Z"), ZoneOffset.UTC)
         );
@@ -78,6 +82,7 @@ class SteamPlayerServiceImplTests {
         SteamPlayerResponse result = service.findBySteamId(STEAM_ID, 1, 20);
 
         assertThat(result.displayName()).isEqualTo("HotWinter");
+        assertThat(result.source()).isEqualTo("BARMORY");
         assertThat(result.career().winRate()).isEqualByComparingTo("60.00");
         assertThat(result.recentMatches()).singleElement().satisfies(match -> {
             assertThat(match.matchId()).isEqualTo(7448867L);
@@ -87,6 +92,37 @@ class SteamPlayerServiceImplTests {
         assertThat(result.mostUsedUnits()).singleElement().satisfies(unitStats -> {
             assertThat(unitStats.unitName()).isEqualTo("M1A1 Abrams");
             assertThat(unitStats.kills()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void fallsBackToBattleGroupWhenBarmoryIsUnavailable() throws Exception {
+        when(gateway.findCommander(STEAM_ID))
+                .thenThrow(new ExternalProviderException("blocked"));
+        when(battleGroupGateway.findPlayerStats(STEAM_ID)).thenReturn(json("""
+                {
+                  "found":true,
+                  "steam_id":"76561198157609957",
+                  "steam":{"personaName":"HotWinter"},
+                  "user":{"id":27516,"name":"HotWinter","level":88,
+                    "rating":3500.85,"rank":1},
+                  "stats":{"kdRatio":1.75,"fightsCount":973,
+                    "winsCount":815,"losesCount":149,"killsCount":37889,
+                    "deathsCount":21559,"totalMatchTimeSec":1885444,
+                    "capturedZonesCount":1833},
+                  "recent":[{"fightId":"7469463","mapName":"Baltiisk",
+                    "endTime":1783274193,"result":"win",
+                    "oldRating":3499.3,"ratingChange":1.55}]
+                }
+                """));
+
+        SteamPlayerResponse result = service.findBySteamId(STEAM_ID, 8, 20);
+
+        assertThat(result.source()).isEqualTo("BATTLEGROUP");
+        assertThat(result.career().matches()).isEqualTo(973);
+        assertThat(result.recentMatches()).singleElement().satisfies(match -> {
+            assertThat(match.mapName()).isEqualTo("Baltiisk");
+            assertThat(match.newRating()).isEqualByComparingTo("3500.85");
         });
     }
 

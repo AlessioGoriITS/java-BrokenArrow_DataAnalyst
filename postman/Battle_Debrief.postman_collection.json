@@ -542,7 +542,7 @@
     },
     {
       "name": "09 - Steam Debrief",
-      "description": "Public live lookup: no Battle Debrief account or JWT is required. The response is supplied by the BArmory community API.",
+      "description": "Public live lookup: no Battle Debrief account or JWT is required. BArmory is the primary community source and BattleGroup is the automatic fallback.",
       "item": [
         {
           "name": "Player debrief by Steam ID",
