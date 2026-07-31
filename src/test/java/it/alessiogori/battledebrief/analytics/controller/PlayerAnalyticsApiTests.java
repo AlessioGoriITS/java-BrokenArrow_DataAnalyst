@@ -195,6 +195,89 @@ class PlayerAnalyticsApiTests {
                         .value((Object) null));
     }
 
+    @Test
+    void trendReturnsRecentMatchesInChronologicalOrder() throws Exception {
+        persistPerformance(
+                ownerProfile,
+                "trend-001",
+                Instant.parse("2026-07-26T18:00:00Z"),
+                true,
+                1480,
+                1500,
+                500L,
+                250L,
+                200L,
+                100L,
+                400L
+        );
+        persistPerformance(
+                ownerProfile,
+                "trend-002",
+                Instant.parse("2026-07-28T18:00:00Z"),
+                false,
+                1500,
+                1490,
+                300L,
+                0L,
+                100L,
+                0L,
+                0L
+        );
+        persistPerformance(
+                ownerProfile,
+                "trend-003",
+                Instant.parse("2026-07-30T18:00:00Z"),
+                true,
+                1490,
+                1510,
+                900L,
+                300L,
+                600L,
+                300L,
+                600L
+        );
+
+        mockMvc.perform(get(
+                                "/api/players/{id}/analysis/trend",
+                                ownerProfile.getId()
+                        )
+                        .queryParam("limit", "2")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].externalMatchId")
+                        .value("trend-002"))
+                .andExpect(jsonPath("$[0].eloChange").value(-10))
+                .andExpect(jsonPath("$[0].economicKd.status")
+                        .value("NO_LOSSES"))
+                .andExpect(jsonPath("$[0].deploymentEfficiency.status")
+                        .value("NO_DEPLOYMENTS"))
+                .andExpect(jsonPath("$[0].damageRatio.status")
+                        .value("NO_DAMAGE_RECEIVED"))
+                .andExpect(jsonPath("$[1].externalMatchId")
+                        .value("trend-003"))
+                .andExpect(jsonPath("$[1].eloChange").value(20))
+                .andExpect(jsonPath("$[1].economicKd.value").value(3.0))
+                .andExpect(jsonPath("$[1].deploymentEfficiency.value")
+                        .value(1.5));
+
+        mockMvc.perform(get(
+                                "/api/players/{id}/analysis/trend",
+                                ownerProfile.getId()
+                        )
+                        .header(HttpHeaders.AUTHORIZATION, bearer(otherToken)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get(
+                                "/api/players/{id}/analysis/trend",
+                                ownerProfile.getId()
+                        )
+                        .queryParam("limit", "0")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
     private void persistPerformance(
             PlayerProfile player,
             String externalMatchId,

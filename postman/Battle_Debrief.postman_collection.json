@@ -440,6 +440,14 @@
           }
         },
         {
+          "name": "Player performance trend",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/players/{{playerId}}/analysis/trend?limit=10"
+          }
+        },
+        {
           "name": "Player unit analysis",
           "event": [
             {

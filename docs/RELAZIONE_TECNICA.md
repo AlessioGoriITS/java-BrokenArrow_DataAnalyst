@@ -126,7 +126,7 @@ presente.
 ### 5.5 analytics
 
 - **AnalyticsCalculator:** rapporti, percentuali e arrotondamenti;
-- **PlayerAnalyticsService:** statistiche di carriera;
+- **PlayerAnalyticsService:** statistiche di carriera e trend temporale;
 - **UnitAnalyticsService:** rendimento delle unità per giocatore;
 - **DatasetAnalyticsService:** aggregazioni sul dataset locale;
 - **PlayerCareerAggregate, PlayerUnitAggregate e DatasetUnitAggregate:**
@@ -290,7 +290,6 @@ Possibili sviluppi futuri:
 
 - Steam OpenID;
 - provider esterno documentato;
-- trend temporali;
 - analytics per mappe e specializzazioni;
 - ranking dei giocatori per unità;
 - ricostruzione parziale dei deck;

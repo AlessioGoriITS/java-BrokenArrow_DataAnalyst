@@ -19,7 +19,7 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - importazione transazionale della match history in formato JSON;
 - ricerca paginata e filtrabile delle partite;
 - dettaglio completo di partite e prestazioni;
-- statistiche di carriera del giocatore;
+- statistiche di carriera e andamento temporale del giocatore;
 - statistiche delle unità utilizzate dal giocatore;
 - statistiche aggregate sul dataset locale;
 - gestione esplicita delle divisioni per zero;
@@ -208,7 +208,7 @@ account sono destinati soltanto alla dimostrazione locale.
 | Admin catalogo | `/api/admin/units/**` | admin |
 | Import partite | `POST /api/matches/import` | proprietario/admin |
 | Match history | `/api/players/{id}/matches` | proprietario/admin |
-| Player analytics | `/api/players/{id}/analysis` | proprietario/admin |
+| Player analytics | `/api/players/{id}/analysis/**` | proprietario/admin |
 | Unit analytics | `/api/players/{id}/units/**` | proprietario/admin |
 | Dataset analytics | `/api/analytics/units/**` | pubblico |
 

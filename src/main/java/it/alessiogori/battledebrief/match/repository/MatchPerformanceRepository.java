@@ -2,6 +2,7 @@ package it.alessiogori.battledebrief.match.repository;
 
 import it.alessiogori.battledebrief.analytics.repository.PlayerCareerAggregate;
 import it.alessiogori.battledebrief.match.entity.MatchPerformance;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,11 @@ public interface MatchPerformanceRepository
 
     List<MatchPerformance> findAllByPlayerProfileIdOrderByGameMatchStartedAtDesc(
             Long playerProfileId
+    );
+
+    List<MatchPerformance> findAllByPlayerProfileId(
+            Long playerProfileId,
+            Pageable pageable
     );
 
     boolean existsByGameMatchIdAndPlayerProfileUserId(
