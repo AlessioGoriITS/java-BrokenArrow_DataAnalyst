@@ -122,7 +122,9 @@ cp .env.example .env
 
 I valori forniti sono esclusivamente dimostrativi. Prima di usare il progetto
 fuori dall'ambiente locale, modificare password MySQL e chiave JWT nel file
-`.env`.
+`.env`. I timeout dei provider possono essere personalizzati con
+`EXTERNAL_CONNECT_TIMEOUT` e `EXTERNAL_READ_TIMEOUT` usando valori ISO-8601,
+per esempio `PT3S` e `PT10S`.
 
 Costruire e avviare l'intero ambiente:
 
@@ -134,7 +136,7 @@ Servizi disponibili:
 
 - sito e API: `http://localhost:8080`;
 - health check: `http://localhost:8080/actuator/health`;
-- MySQL: `localhost:3306`.
+- MySQL: disponibile soltanto nella rete Docker interna sulla porta `3306`.
 
 Arrestare i container mantenendo i dati:
 
@@ -222,6 +224,7 @@ offline: le fonti esterne sono necessarie soltanto per rigenerare il dataset.
 | Modulo | Endpoint principali | Accesso |
 |---|---|---|
 | Health | `GET /actuator/health` | pubblico |
+| Metriche | `GET /actuator/metrics/**` | autenticato |
 | Auth | `/api/auth/register`, `/api/auth/login` | pubblico |
 | Utente | `/api/auth/me`, `/api/users/{id}`, `PUT /api/users/{id}/steam` | proprietario/admin |
 | Admin utenti | `/api/admin/users/**` | admin |
@@ -236,6 +239,17 @@ offline: le fonti esterne sono necessarie soltanto per rigenerare il dataset.
 
 Le risposte di errore hanno una struttura uniforme con timestamp, stato HTTP,
 codice applicativo, messaggio e path della richiesta.
+
+L'import delle partite restituisce `201 Created`, con header `Location`, quando
+salva almeno una nuova partita. Restituisce invece `200 OK` quando tutte le
+partite erano già presenti. La risposta Steam include `diagnostics`, che espone
+durata, match richiesti, caricati e scartati, ID scartati e campi non validi.
+Le metriche Micrometer principali sono:
+
+- `battle.debrief.steam.lookups` per provider ed esito;
+- `battle.debrief.steam.lookup.duration` per la durata;
+- `battle.debrief.steam.matches.discarded` per gli scarti;
+- `battle.debrief.steam.fields.invalid` per i campi non validi.
 
 ## Postman
 
@@ -275,7 +289,7 @@ Il report JaCoCo viene generato in:
 target/site/jacoco/index.html
 ```
 
-Gli 85 test correnti raggiungono il 90,48% di copertura delle linee e superano
+Gli 89 test correnti raggiungono il 90,12% di copertura delle linee e superano
 il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
 fallire automaticamente la build se la copertura complessiva delle linee
 scende sotto tale soglia.

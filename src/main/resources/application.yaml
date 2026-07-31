@@ -14,6 +14,9 @@ server:
   port: ${SERVER_PORT:8080}
 
 integration:
+  http:
+    connect-timeout: ${EXTERNAL_CONNECT_TIMEOUT:PT3S}
+    read-timeout: ${EXTERNAL_READ_TIMEOUT:PT10S}
   barmory:
     base-url: ${BARMORY_BASE_URL:https://barmory.net}
     version: ${BARMORY_VERSION:8.4}
@@ -31,7 +34,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,metrics
   endpoint:
     health:
       show-details: never

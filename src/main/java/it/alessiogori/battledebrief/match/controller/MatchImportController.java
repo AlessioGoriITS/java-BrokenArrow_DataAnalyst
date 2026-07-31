@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/matches/import")
@@ -28,6 +31,16 @@ public class MatchImportController {
     public ResponseEntity<MatchImportResponse> importMatches(
             @Valid @RequestBody MatchImportRequest request
     ) {
-        return ResponseEntity.ok(matchImportService.importMatches(request));
+        MatchImportResponse response = matchImportService.importMatches(request);
+        if (response.importedCount() == 0) {
+            return ResponseEntity.ok(response);
+        }
+
+        URI playerHistory = ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .path("/api/players/{playerId}/matches")
+                .buildAndExpand(request.playerProfileId())
+                .toUri();
+        return ResponseEntity.created(playerHistory).body(response);
     }
 }

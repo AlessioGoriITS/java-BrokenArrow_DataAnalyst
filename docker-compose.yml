@@ -7,8 +7,6 @@ services:
       MYSQL_USER: ${MYSQL_USER:-battle_debrief}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -37,6 +35,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-PT1H}
+      EXTERNAL_CONNECT_TIMEOUT: ${EXTERNAL_CONNECT_TIMEOUT:-PT3S}
+      EXTERNAL_READ_TIMEOUT: ${EXTERNAL_READ_TIMEOUT:-PT10S}
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:

@@ -6,6 +6,7 @@ import it.alessiogori.battledebrief.common.exception.ResourceNotFoundException;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamCareerResponse;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamMatchResponse;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamPlayerResponse;
+import it.alessiogori.battledebrief.integration.barmory.dto.SteamLookupDiagnosticsResponse;
 import it.alessiogori.battledebrief.integration.barmory.dto.SteamUnitPerformanceResponse;
 import it.alessiogori.battledebrief.unit.entity.Unit;
 import it.alessiogori.battledebrief.unit.repository.UnitRepository;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
@@ -39,17 +41,20 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
     private final BattleGroupGateway battleGroupGateway;
     private final UnitRepository unitRepository;
     private final Clock clock;
+    private final SteamProviderMetrics providerMetrics;
 
     public SteamPlayerServiceImpl(
             BarmoryGateway gateway,
             BattleGroupGateway battleGroupGateway,
             UnitRepository unitRepository,
-            Clock clock
+            Clock clock,
+            SteamProviderMetrics providerMetrics
     ) {
         this.gateway = gateway;
         this.battleGroupGateway = battleGroupGateway;
         this.unitRepository = unitRepository;
         this.clock = clock;
+        this.providerMetrics = providerMetrics;
     }
 
     @Override
@@ -58,21 +63,78 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
             int weeks,
             int limit
     ) {
+        long lookupStarted = System.nanoTime();
+        long providerStarted = lookupStarted;
+        LookupDiagnostics diagnostics = new LookupDiagnostics();
         try {
-            return findOnBarmory(steamId, weeks, limit);
+            SteamPlayerResponse response = findOnBarmory(
+                    steamId,
+                    weeks,
+                    limit,
+                    diagnostics
+            );
+            providerMetrics.recordLookup(
+                    "BARMORY",
+                    elapsed(providerStarted),
+                    true
+            );
+            return response.withDiagnostics(
+                    diagnostics.toResponse(elapsedMillis(lookupStarted))
+            );
         } catch (ExternalProviderException exception) {
+            providerMetrics.recordLookup(
+                    "BARMORY",
+                    elapsed(providerStarted),
+                    false
+            );
             LOGGER.warn(
                     "BArmory lookup failed; using BattleGroup fallback: {}",
                     exception.getMessage()
             );
-            return findOnBattleGroup(steamId, limit);
+            LookupDiagnostics fallbackDiagnostics = new LookupDiagnostics();
+            fallbackDiagnostics.warn(
+                    "BArmory unavailable: " + exception.getMessage()
+            );
+            providerStarted = System.nanoTime();
+            try {
+                SteamPlayerResponse response = findOnBattleGroup(
+                        steamId,
+                        limit,
+                        fallbackDiagnostics
+                );
+                providerMetrics.recordLookup(
+                        "BATTLEGROUP",
+                        elapsed(providerStarted),
+                        true
+                );
+                return response.withDiagnostics(
+                        fallbackDiagnostics.toResponse(
+                                elapsedMillis(lookupStarted)
+                        )
+                );
+            } catch (RuntimeException fallbackException) {
+                providerMetrics.recordLookup(
+                        "BATTLEGROUP",
+                        elapsed(providerStarted),
+                        false
+                );
+                throw fallbackException;
+            }
+        } catch (RuntimeException exception) {
+            providerMetrics.recordLookup(
+                    "BARMORY",
+                    elapsed(providerStarted),
+                    false
+            );
+            throw exception;
         }
     }
 
     private SteamPlayerResponse findOnBarmory(
             String steamId,
             int weeks,
-            int limit
+            int limit,
+            LookupDiagnostics diagnostics
     ) {
         JsonNode commander = gateway.findCommander(steamId);
         long commanderId = commander.path("id").asLong();
@@ -84,7 +146,7 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
 
         JsonNode stats = gateway.findCommanderStats(steamId);
         Set<Long> matchIds = recentMatchIds(commanderId, weeks, limit);
-        List<RawMatch> rawMatches = availableMatches(matchIds);
+        List<RawMatch> rawMatches = availableMatches(matchIds, diagnostics);
         List<SteamMatchResponse> matches = rawMatches.stream()
                 .map(match -> toMatch(match, commanderId))
                 .sorted(Comparator.comparing(SteamMatchResponse::endedAt).reversed())
@@ -99,13 +161,17 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 integer(commander, "rk", 0),
                 career(stats),
                 matches,
-                aggregateUnits(rawMatches, commanderId),
+                aggregateUnits(rawMatches, commanderId, "BARMORY", diagnostics),
                 "BARMORY",
-                instant(stats, "updateDate")
+                instant(stats, "updateDate", "BARMORY", diagnostics)
         );
     }
 
-    private SteamPlayerResponse findOnBattleGroup(String steamId, int limit) {
+    private SteamPlayerResponse findOnBattleGroup(
+            String steamId,
+            int limit,
+            LookupDiagnostics diagnostics
+    ) {
         JsonNode response = battleGroupGateway.findPlayerStats(steamId);
         if (!response.path("found").asBoolean(false)) {
             throw new ResourceNotFoundException(
@@ -155,18 +221,29 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 .limit(limit)
                 .toList();
         List<RawMatch> rawMatches = new ArrayList<>();
+        diagnostics.requestedMatches(recentMatches.size());
         recentMatches.forEach(match -> {
             try {
                 rawMatches.add(new RawMatch(
                         match.matchId(),
                         battleGroupGateway.findMatch(match.matchId())
                 ));
-            } catch (ExternalProviderException ignored) {
+                diagnostics.loadedMatch();
+            } catch (ExternalProviderException exception) {
                 // The summary remains useful if an archived match has expired.
+                diagnostics.discardMatch(
+                        match.matchId(),
+                        "Match telemetry " + match.matchId()
+                                + " unavailable: " + exception.getMessage()
+                );
+                providerMetrics.recordDiscardedMatch(
+                        "BATTLEGROUP",
+                        "telemetry_unavailable"
+                );
                 LOGGER.warn(
                         "Match telemetry {} could not be loaded: {}",
                         match.matchId(),
-                        ignored.getMessage()
+                        exception.getMessage()
                 );
             }
         });
@@ -197,7 +274,12 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 integer(user, "rank", 0),
                 career,
                 recentMatches,
-                aggregateUnits(rawMatches, commanderId),
+                aggregateUnits(
+                        rawMatches,
+                        commanderId,
+                        "BATTLEGROUP",
+                        diagnostics
+                ),
                 "BATTLEGROUP",
                 clock.instant()
         );
@@ -216,14 +298,33 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 ));
     }
 
-    private List<RawMatch> availableMatches(Set<Long> matchIds) {
+    private List<RawMatch> availableMatches(
+            Set<Long> matchIds,
+            LookupDiagnostics diagnostics
+    ) {
         List<RawMatch> matches = new ArrayList<>();
+        diagnostics.requestedMatches(matchIds.size());
         for (Long matchId : matchIds) {
             try {
                 matches.add(new RawMatch(matchId, gateway.findMatch(matchId)));
-            } catch (ExternalProviderException ignored) {
+                diagnostics.loadedMatch();
+            } catch (ExternalProviderException exception) {
                 // Providers can retain an ID after its match payload expires.
                 // One missing match must not discard the remaining telemetry.
+                diagnostics.discardMatch(
+                        matchId,
+                        "Match telemetry " + matchId
+                                + " unavailable: " + exception.getMessage()
+                );
+                providerMetrics.recordDiscardedMatch(
+                        "BARMORY",
+                        "telemetry_unavailable"
+                );
+                LOGGER.warn(
+                        "BArmory match telemetry {} was discarded: {}",
+                        matchId,
+                        exception.getMessage()
+                );
             }
         }
         if (!matchIds.isEmpty() && matches.isEmpty()) {
@@ -293,14 +394,30 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
 
     private List<SteamUnitPerformanceResponse> aggregateUnits(
             List<RawMatch> matches,
-            long commanderId
+            long commanderId,
+            String provider,
+            LookupDiagnostics diagnostics
     ) {
         Map<Long, MutableUnitPerformance> totals = new HashMap<>();
         for (RawMatch match : matches) {
             JsonNode unitData;
             try {
                 unitData = playerData(match.data(), commanderId).path("UnitData");
-            } catch (ResourceNotFoundException ignored) {
+            } catch (ResourceNotFoundException exception) {
+                diagnostics.invalidField(
+                        "Match " + match.id()
+                                + " has no telemetry for commander "
+                                + commanderId
+                );
+                providerMetrics.recordInvalidField(
+                        provider,
+                        "match.commander_data"
+                );
+                LOGGER.warn(
+                        "Unit telemetry from match {} was discarded: {}",
+                        match.id(),
+                        exception.getMessage()
+                );
                 continue;
             }
             unitData.forEach(unit -> {
@@ -323,8 +440,20 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
             if (externalId != null && externalId.startsWith("ba_")) {
                 try {
                     names.put(Long.parseLong(externalId.substring(3)), unit.getName());
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException exception) {
                     // Curated legacy identifiers do not carry the provider ID.
+                    diagnostics.invalidField(
+                            "Catalog unit has an invalid provider ID: "
+                                    + externalId
+                    );
+                    providerMetrics.recordInvalidField(
+                            provider,
+                            "catalog.external_unit_id"
+                    );
+                    LOGGER.warn(
+                            "Catalog unit ID {} cannot be mapped to provider data",
+                            externalId
+                    );
                 }
             }
         }
@@ -371,13 +500,36 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
         return value.isBlank() ? fallback : value;
     }
 
-    private Instant instant(JsonNode node, String field) {
+    private Instant instant(
+            JsonNode node,
+            String field,
+            String provider,
+            LookupDiagnostics diagnostics
+    ) {
         String value = node.path(field).asText("");
         try {
             return value.isBlank() ? null : Instant.parse(value);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException exception) {
+            diagnostics.invalidField(
+                    "Invalid timestamp in field " + field + ": " + value
+            );
+            providerMetrics.recordInvalidField(provider, field);
+            LOGGER.warn(
+                    "Provider {} returned an invalid {} timestamp: {}",
+                    provider,
+                    field,
+                    value
+            );
             return null;
         }
+    }
+
+    private Duration elapsed(long startedAt) {
+        return Duration.ofNanos(System.nanoTime() - startedAt);
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return elapsed(startedAt).toMillis();
     }
 
     private List<String> stringList(JsonNode node) {
@@ -397,6 +549,53 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
         private int kills;
         private int damageDealt;
         private int damageReceived;
+    }
+
+    private static final class LookupDiagnostics {
+
+        private static final int MAX_WARNINGS = 20;
+
+        private int requestedMatches;
+        private int loadedMatches;
+        private int invalidFields;
+        private final List<Long> discardedMatchIds = new ArrayList<>();
+        private final List<String> warnings = new ArrayList<>();
+
+        private void requestedMatches(int value) {
+            requestedMatches = value;
+        }
+
+        private void loadedMatch() {
+            loadedMatches++;
+        }
+
+        private void discardMatch(long matchId, String warning) {
+            discardedMatchIds.add(matchId);
+            warn(warning);
+        }
+
+        private void invalidField(String warning) {
+            invalidFields++;
+            warn(warning);
+        }
+
+        private void warn(String warning) {
+            if (warnings.size() < MAX_WARNINGS) {
+                warnings.add(warning);
+            }
+        }
+
+        private SteamLookupDiagnosticsResponse toResponse(long durationMs) {
+            return new SteamLookupDiagnosticsResponse(
+                    durationMs,
+                    requestedMatches,
+                    loadedMatches,
+                    discardedMatchIds.size(),
+                    discardedMatchIds,
+                    invalidFields,
+                    warnings
+            );
+        }
     }
 
     private record RawMatch(long id, JsonNode data) {

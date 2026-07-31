@@ -10,13 +10,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 class SteamPlayerServiceImplTests {
 
@@ -25,6 +29,7 @@ class SteamPlayerServiceImplTests {
     private BarmoryGateway gateway;
     private BattleGroupGateway battleGroupGateway;
     private UnitRepository unitRepository;
+    private SteamProviderMetrics providerMetrics;
     private SteamPlayerService service;
 
     @BeforeEach
@@ -32,11 +37,13 @@ class SteamPlayerServiceImplTests {
         gateway = mock(BarmoryGateway.class);
         battleGroupGateway = mock(BattleGroupGateway.class);
         unitRepository = mock(UnitRepository.class);
+        providerMetrics = mock(SteamProviderMetrics.class);
         service = new SteamPlayerServiceImpl(
                 gateway,
                 battleGroupGateway,
                 unitRepository,
-                Clock.fixed(Instant.parse("2026-07-31T12:00:00Z"), ZoneOffset.UTC)
+                Clock.fixed(Instant.parse("2026-07-31T12:00:00Z"), ZoneOffset.UTC),
+                providerMetrics
         );
     }
 
@@ -48,7 +55,7 @@ class SteamPlayerServiceImplTests {
         when(gateway.findCommanderStats(STEAM_ID)).thenReturn(json("""
                 {
                   "name":"HotWinter","level":88,
-                  "updateDate":"2026-07-31T10:00:00Z",
+                  "updateDate":"not-an-instant",
                   "capturedZonesCount":51,"killsFriendlyFireCount":2,
                   "supplyPointsConsumed":18000,
                   "statisticByLobbyType":{"Rating":{
@@ -97,6 +104,25 @@ class SteamPlayerServiceImplTests {
             assertThat(unitStats.unitName()).isEqualTo("M1A1 Abrams");
             assertThat(unitStats.kills()).isEqualTo(3);
         });
+        assertThat(result.diagnostics().requestedMatches()).isEqualTo(2);
+        assertThat(result.diagnostics().loadedMatches()).isEqualTo(1);
+        assertThat(result.diagnostics().discardedMatchIds())
+                .containsExactly(7448999L);
+        assertThat(result.diagnostics().warnings()).isNotEmpty();
+        assertThat(result.diagnostics().invalidFields()).isEqualTo(1);
+        verify(providerMetrics).recordDiscardedMatch(
+                "BARMORY",
+                "telemetry_unavailable"
+        );
+        verify(providerMetrics).recordInvalidField(
+                "BARMORY",
+                "updateDate"
+        );
+        verify(providerMetrics).recordLookup(
+                eq("BARMORY"),
+                any(Duration.class),
+                eq(true)
+        );
     }
 
     @Test
@@ -155,6 +181,20 @@ class SteamPlayerServiceImplTests {
             assertThat(unitStats.unitName()).isEqualTo("M1A1 Abrams");
             assertThat(unitStats.kills()).isEqualTo(3);
         });
+        assertThat(result.diagnostics().requestedMatches()).isEqualTo(1);
+        assertThat(result.diagnostics().loadedMatches()).isEqualTo(1);
+        assertThat(result.diagnostics().warnings())
+                .anyMatch(value -> value.contains("BArmory unavailable"));
+        verify(providerMetrics).recordLookup(
+                eq("BARMORY"),
+                any(Duration.class),
+                eq(false)
+        );
+        verify(providerMetrics).recordLookup(
+                eq("BATTLEGROUP"),
+                any(Duration.class),
+                eq(true)
+        );
     }
 
     private JsonNode json(String value) throws Exception {

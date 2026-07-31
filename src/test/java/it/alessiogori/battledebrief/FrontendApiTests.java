@@ -63,4 +63,11 @@ class FrontendApiTests {
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void missingFaviconReturnsNotFoundInsteadOfInternalServerError()
+            throws Exception {
+        mockMvc.perform(get("/favicon.ico"))
+                .andExpect(status().isNotFound());
+    }
 }

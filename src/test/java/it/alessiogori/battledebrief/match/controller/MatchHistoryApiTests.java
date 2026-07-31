@@ -33,6 +33,7 @@ import java.util.List;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -132,10 +133,25 @@ class MatchHistoryApiTests {
                         .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
+                .andExpect(header().string(
+                        HttpHeaders.LOCATION,
+                        "http://localhost/api/players/"
+                                + ownerProfile.getId() + "/matches"
+                ))
                 .andExpect(jsonPath("$.importedCount").value(1))
                 .andExpect(jsonPath("$.skippedCount").value(0))
                 .andExpect(jsonPath("$.importedMatchIds.length()").value(1));
+
+        mockMvc.perform(post("/api/matches/import")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.importedCount").value(0))
+                .andExpect(jsonPath("$.skippedCount").value(1))
+                .andExpect(jsonPath("$.skippedExternalMatchIds[0]")
+                        .value("api-import-001"));
     }
 
     @Test

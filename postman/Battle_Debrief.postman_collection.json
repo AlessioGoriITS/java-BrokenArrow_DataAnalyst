@@ -418,7 +418,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Match imported', () => pm.response.to.have.status(200));",
+                  "pm.test('Match imported', () => pm.expect([200, 201]).to.include(pm.response.code));",
                   "const ids = pm.response.json().importedMatchIds;",
                   "if (ids.length) pm.environment.set('matchId', ids[0]);"
                 ],
