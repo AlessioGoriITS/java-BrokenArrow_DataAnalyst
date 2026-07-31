@@ -2,6 +2,7 @@ package it.alessiogori.battledebrief.user.service;
 
 import it.alessiogori.battledebrief.common.dto.PageResponse;
 import it.alessiogori.battledebrief.user.dto.UpdateEnabledRequest;
+import it.alessiogori.battledebrief.user.dto.LinkSteamProfileRequest;
 import it.alessiogori.battledebrief.user.dto.UpdateRoleRequest;
 import it.alessiogori.battledebrief.user.dto.UpdateUserRequest;
 import it.alessiogori.battledebrief.user.dto.UserResponse;
@@ -12,6 +13,11 @@ public interface UserService {
     UserResponse getById(Long userId);
 
     UserResponse update(Long userId, UpdateUserRequest request);
+
+    UserResponse linkSteamProfile(
+            Long userId,
+            LinkSteamProfileRequest request
+    );
 
     PageResponse<UserResponse> findAll(Pageable pageable);
 

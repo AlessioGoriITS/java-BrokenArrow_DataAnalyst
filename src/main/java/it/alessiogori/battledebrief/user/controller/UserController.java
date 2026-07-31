@@ -1,6 +1,7 @@
 package it.alessiogori.battledebrief.user.controller;
 
 import it.alessiogori.battledebrief.user.dto.UpdateUserRequest;
+import it.alessiogori.battledebrief.user.dto.LinkSteamProfileRequest;
 import it.alessiogori.battledebrief.user.dto.UserResponse;
 import it.alessiogori.battledebrief.user.service.UserService;
 import jakarta.validation.Valid;
@@ -38,5 +39,16 @@ public class UserController {
             @Valid @RequestBody UpdateUserRequest request
     ) {
         return ResponseEntity.ok(userService.update(userId, request));
+    }
+
+    @PutMapping("/{userId}/steam")
+    @PreAuthorize("#userId == authentication.principal.id or hasRole('ADMIN')")
+    public ResponseEntity<UserResponse> linkSteamProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody LinkSteamProfileRequest request
+    ) {
+        return ResponseEntity.ok(
+                userService.linkSteamProfile(userId, request)
+        );
     }
 }

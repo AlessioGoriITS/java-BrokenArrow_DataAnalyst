@@ -2,6 +2,8 @@ package it.alessiogori.battledebrief.user.controller;
 
 import it.alessiogori.battledebrief.auth.security.AuthenticatedUser;
 import it.alessiogori.battledebrief.auth.security.JwtService;
+import it.alessiogori.battledebrief.integration.barmory.SteamPlayerService;
+import it.alessiogori.battledebrief.integration.barmory.dto.SteamPlayerResponse;
 import it.alessiogori.battledebrief.user.entity.Role;
 import it.alessiogori.battledebrief.user.entity.User;
 import it.alessiogori.battledebrief.user.repository.UserRepository;
@@ -14,10 +16,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.math.BigDecimal;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -43,6 +49,9 @@ class UserAuthorizationApiTests {
 
     @Autowired
     private JwtService jwtService;
+
+    @MockitoBean
+    private SteamPlayerService steamPlayerService;
 
     private User owner;
     private User otherUser;
@@ -147,6 +156,48 @@ class UserAuthorizationApiTests {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("DUPLICATE_RESOURCE"))
                 .andExpect(jsonPath("$.message").value("Email already exists"));
+    }
+
+    @Test
+    void ownerCanLinkAValidatedSteamProfile() throws Exception {
+        String steamId = "76561198776876377";
+        when(steamPlayerService.findBySteamId(steamId, 2, 1))
+                .thenReturn(new SteamPlayerResponse(
+                        steamId,
+                        48123L,
+                        "Test Commander",
+                        24,
+                        new BigDecimal("1712.8"),
+                        250,
+                        null,
+                        List.of(),
+                        List.of(),
+                        "BATTLEGROUP",
+                        Instant.parse("2026-07-31T12:00:00Z")
+                ));
+
+        mockMvc.perform(put("/api/users/{id}/steam", owner.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "steamId": "76561198776876377"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerProfile.steamId").value(steamId))
+                .andExpect(jsonPath("$.playerProfile.displayName")
+                        .value("Test Commander"));
+
+        mockMvc.perform(put("/api/users/{id}/steam", owner.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(otherUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "steamId": "76561198776876377"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
     }
 
     @Test
