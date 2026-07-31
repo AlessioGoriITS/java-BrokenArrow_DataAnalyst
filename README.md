@@ -110,8 +110,16 @@ assoluta di *Broken Arrow*.
 
 Creare il file locale delle variabili d'ambiente:
 
+Su Windows PowerShell:
+
 ```powershell
 Copy-Item .env.example .env
+```
+
+Su Windows Prompt dei comandi (`cmd`):
+
+```bat
+copy .env.example .env
 ```
 
 Su Linux o macOS:
