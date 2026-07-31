@@ -31,6 +31,7 @@
             <span>LINKING</span>
         </div>
         <button class="button button-ghost" id="auth-button" type="button">Accedi</button>
+        <button class="button button-ghost" id="global-logout" type="button" hidden>Logout</button>
         <button class="menu-button" id="menu-button" type="button" aria-label="Apri menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
@@ -42,7 +43,7 @@
         <div class="command-hero">
             <div class="hero-grid" aria-hidden="true"></div>
             <div class="hero-copy">
-                <p class="eyebrow"><span>01</span> LIVE DATASET / TACTICAL OVERVIEW</p>
+                <p class="eyebrow"><span>01</span> PERSONAL COMMAND / TACTICAL OVERVIEW</p>
                 <h1 id="dashboard-title">Conosci il campo.<br><em>Domina il debrief.</em></h1>
                 <p class="hero-lead">Prestazioni, valore economico ed evoluzione ELO trasformati in intelligence operativa leggibile.</p>
                 <div class="hero-actions">
@@ -54,7 +55,7 @@
                 <div class="brief-card-head"><span>SITREP</span><small id="sync-clock">--:--:-- Z</small></div>
                 <div class="brief-radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
                 <dl class="brief-list">
-                    <div><dt>Dataset</dt><dd id="dataset-version">CONNECTING</dd></div>
+                    <div><dt>Comandante</dt><dd id="dataset-version">LOGIN REQUIRED</dd></div>
                     <div><dt>Campione</dt><dd id="dataset-matches">— MATCH</dd></div>
                     <div><dt>Integrità</dt><dd class="positive">VERIFIED</dd></div>
                 </dl>
@@ -63,16 +64,16 @@
 
         <div class="page-shell dashboard-shell">
             <section class="metric-strip" aria-label="Indicatori principali">
-                <article class="metric-card"><span>UNITÀ CENSITE</span><strong id="kpi-units">—</strong><small>asset operativi</small></article>
-                <article class="metric-card"><span>MAPPE ANALIZZATE</span><strong id="kpi-maps">—</strong><small>teatri registrati</small></article>
-                <article class="metric-card"><span>TOP WIN RATE</span><strong id="kpi-winrate">—</strong><small id="kpi-winrate-label">nessun campione</small></article>
-                <article class="metric-card"><span>TOP ECONOMIC K/D</span><strong id="kpi-kd">—</strong><small id="kpi-kd-label">nessun campione</small></article>
+                <article class="metric-card"><span>MATCH TOTALI</span><strong id="kpi-units">—</strong><small>carriera personale</small></article>
+                <article class="metric-card"><span>MAPPE RECENTI</span><strong id="kpi-maps">—</strong><small>teatri giocati</small></article>
+                <article class="metric-card"><span>WIN RATE</span><strong id="kpi-winrate">—</strong><small id="kpi-winrate-label">profilo non caricato</small></article>
+                <article class="metric-card"><span>CURRENT ELO</span><strong id="kpi-kd">—</strong><small id="kpi-kd-label">profilo non caricato</small></article>
             </section>
 
             <div class="dashboard-grid">
                 <section class="panel panel-wide">
                     <header class="panel-head">
-                        <div><p class="section-code">TACTICAL EFFECTIVENESS</p><h2>Unità ad alto impatto</h2></div>
+                        <div><p class="section-code">TACTICAL EFFECTIVENESS</p><h2>Unità più impiegate</h2></div>
                         <a href="#analytics" class="text-link">Analisi completa →</a>
                     </header>
                     <div id="top-units-chart" class="bar-ranking loading-block"></div>
@@ -130,8 +131,8 @@
 
     <section class="view" data-view="analytics" aria-labelledby="analytics-title">
         <div class="page-hero analytics-hero">
-            <div><p class="eyebrow"><span>03</span> DATASET INTELLIGENCE</p><h1 id="analytics-title">Combat <em>Analytics</em></h1><p>Misura adozione, vittorie e rendimento economico sul dataset locale.</p></div>
-            <div class="scope-badge"><span>DATA SCOPE</span><strong>LOCAL / VERIFIED</strong></div>
+            <div><p class="eyebrow"><span>03</span> PERSONAL INTELLIGENCE</p><h1 id="analytics-title">Combat <em>Analytics</em></h1><p>Analizza match, mappe, brigate e unità del tuo Steam ID collegato.</p></div>
+            <div class="scope-badge"><span>DATA SCOPE</span><strong id="analytics-scope">LOGIN REQUIRED</strong></div>
         </div>
         <div class="page-shell">
             <div class="analytics-tabs" role="tablist" aria-label="Tipo di analisi">

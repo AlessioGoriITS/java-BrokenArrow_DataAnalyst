@@ -2,6 +2,7 @@ package it.alessiogori.battledebrief.integration.barmory.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record SteamMatchResponse(
         long matchId,
@@ -18,6 +19,10 @@ public record SteamMatchResponse(
         int damageDealt,
         int damageReceived,
         int objectivesCaptured,
-        int experience
+        int experience,
+        String faction,
+        List<String> specializations,
+        BigDecimal enemyAverageRating,
+        boolean ranked
 ) {
 }

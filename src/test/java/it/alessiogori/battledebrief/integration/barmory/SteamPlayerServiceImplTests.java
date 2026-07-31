@@ -112,7 +112,9 @@ class SteamPlayerServiceImplTests {
                     "capturedZonesCount":1833},
                   "recent":[{"fightId":"7469463","mapName":"Baltiisk",
                     "endTime":1783274193,"result":"win",
-                    "oldRating":3499.3,"ratingChange":1.55}]
+                    "oldRating":3499.3,"ratingChange":1.55,
+                    "countryName":"USA","specNames":["Stryker","Baltic"],
+                    "enemyAvgRating":3400,"isRanked":true}]
                 }
                 """));
 
@@ -123,6 +125,11 @@ class SteamPlayerServiceImplTests {
         assertThat(result.recentMatches()).singleElement().satisfies(match -> {
             assertThat(match.mapName()).isEqualTo("Baltiisk");
             assertThat(match.newRating()).isEqualByComparingTo("3500.85");
+            assertThat(match.faction()).isEqualTo("USA");
+            assertThat(match.specializations()).containsExactly(
+                    "Stryker", "Baltic"
+            );
+            assertThat(match.ranked()).isTrue();
         });
     }
 

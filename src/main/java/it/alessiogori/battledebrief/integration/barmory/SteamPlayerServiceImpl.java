@@ -128,7 +128,11 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                     0,
                     0,
                     0,
-                    0
+                    0,
+                    text(match, "countryName", null),
+                    stringList(match.path("specNames")),
+                    decimal(match, "enemyAvgRating"),
+                    match.path("isRanked").asBoolean(false)
             ));
         });
         List<SteamMatchResponse> recentMatches = matches.stream()
@@ -230,7 +234,11 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 integer(player, "DamageDealt", 0),
                 integer(player, "DamageReceived", 0),
                 integer(player, "ObjectivesCaptured", 0),
-                integer(player, "TotalExp", 0)
+                integer(player, "TotalExp", 0),
+                text(player, "CountryName", null),
+                stringList(player.path("SpecializationNames")),
+                decimal(player, "EnemyAvgRating"),
+                true
         );
     }
 
@@ -317,6 +325,17 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    private List<String> stringList(JsonNode node) {
+        if (!node.isArray()) return List.of();
+        List<String> values = new ArrayList<>();
+        node.forEach(value -> {
+            if (value.isTextual() && !value.asText().isBlank()) {
+                values.add(value.asText());
+            }
+        });
+        return List.copyOf(values);
     }
 
     private static final class MutableUnitPerformance {

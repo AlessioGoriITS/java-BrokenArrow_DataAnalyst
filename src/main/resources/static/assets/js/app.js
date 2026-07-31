@@ -4,15 +4,14 @@ import { drawLineChart } from "./charts.js";
 const state = {
     route: "dashboard",
     dashboardLoaded: false,
-    analyticsLoaded: false,
     analyticsTab: "units",
-    analytics: { units: [], maps: [], specializations: [] },
     unitPage: 0,
     unitLayout: "grid",
     account: null,
     accountLoading: false,
     playerProfile: null,
     playerLoading: false,
+    playerRequest: null,
     trend: []
 };
 
@@ -42,13 +41,6 @@ const initials = value => String(value || "Commander")
     .map(part => part[0])
     .join("")
     .toUpperCase();
-const metricNumber = metric => metric?.value ?? null;
-const metricText = (metric, suffix = "") => metricNumber(metric) === null
-    ? "N/D"
-    : `${formatDecimal(metric.value)}${suffix}`;
-const metricClass = metric => metricNumber(metric) === null
-    ? "muted"
-    : Number(metric.value) >= 1 || Number(metric.value) >= 50 ? "good" : "warn";
 const categoryGlyph = category => ({
     TANK: "TNK", IFV: "IFV", RECON: "RCN", ARTILLERY: "ART",
     AIR_DEFENSE: "ADA", INFANTRY: "INF", HELICOPTER: "HEL",
@@ -111,76 +103,93 @@ async function checkHealth() {
 }
 
 async function loadDashboard() {
-    if (state.dashboardLoaded) return;
+    if (!api.isAuthenticated()) return renderPersonalGate("Accedi per caricare il tuo Command Center.");
+    if (!state.account) return;
+    const steamId = state.account.playerProfile?.steamId;
+    if (!steamId) return renderPersonalGate("Collega lo Steam ID in My Debrief.");
     try {
-        const [unitPage, unitStats, mapStats, specializationStats] = await Promise.all([
-            api.units({ page: 0, size: 1, sort: "name,asc" }),
-            api.unitAnalytics(),
-            api.mapAnalytics(),
-            api.specializationAnalytics()
-        ]);
-        state.analytics = {
-            units: unitStats,
-            maps: mapStats,
-            specializations: specializationStats
-        };
-        state.analyticsLoaded = true;
+        const profile = await ensurePlayerProfile(steamId);
         state.dashboardLoaded = true;
-
-        const firstUnit = unitPage.content?.[0];
-        const datasetMatches = Math.max(
-            unitStats[0]?.datasetMatches || 0,
-            mapStats[0]?.datasetMatches || 0,
-            specializationStats[0]?.datasetMatches || 0
-        );
-        $("#dataset-version").textContent = firstUnit?.datasetVersion || "NO ASSETS";
-        $("#dataset-matches").textContent = `${formatNumber(datasetMatches)} MATCH`;
-        $("#kpi-units").textContent = formatNumber(unitPage.totalElements);
-        $("#kpi-maps").textContent = formatNumber(mapStats.length);
-        $("#hangar-total").textContent = formatNumber(unitPage.totalElements);
-
-        const bestWinRate = [...unitStats]
-            .filter(item => metricNumber(item.winRate) !== null)
-            .sort((a, b) => b.winRate.value - a.winRate.value)[0];
-        const bestKd = [...unitStats]
-            .filter(item => metricNumber(item.economicKd) !== null)
-            .sort((a, b) => b.economicKd.value - a.economicKd.value)[0];
-        $("#kpi-winrate").textContent = bestWinRate
-            ? metricText(bestWinRate.winRate, "%")
-            : "N/D";
-        $("#kpi-winrate-label").textContent = bestWinRate?.unitName || "nessun campione";
-        $("#kpi-kd").textContent = bestKd ? metricText(bestKd.economicKd) : "N/D";
-        $("#kpi-kd-label").textContent = bestKd?.unitName || "nessun campione";
-
-        renderTopUnits(unitStats);
-        renderMapPopularity(mapStats);
-        renderSpecializationOverview(specializationStats);
+        renderPersonalDashboard(profile);
     } catch (error) {
         renderDashboardFailure(error);
     }
 }
 
-function renderTopUnits(items) {
+function renderPersonalGate(message) {
+    $("#dataset-version").textContent = "LOGIN REQUIRED";
+    $("#dataset-matches").textContent = "— MATCH";
+    ["#kpi-units", "#kpi-maps", "#kpi-winrate", "#kpi-kd"].forEach(selector => {
+        $(selector).textContent = "—";
+    });
+    $("#kpi-winrate-label").textContent = message;
+    $("#kpi-kd-label").textContent = "Steam personale";
+    ["#top-units-chart", "#map-popularity", "#specialization-overview"].forEach(selector => {
+        const container = $(selector);
+        container.classList.remove("loading-block");
+        container.innerHTML = emptyMarkup("Profilo personale richiesto", message);
+    });
+}
+
+function personalMaps(matches) {
+    const totals = new Map();
+    matches.forEach(match => {
+        const item = totals.get(match.mapName) || { name: match.mapName, matches: 0, wins: 0, ratingDelta: 0 };
+        item.matches += 1;
+        item.wins += match.won ? 1 : 0;
+        if (match.oldRating != null && match.newRating != null) item.ratingDelta += Number(match.newRating) - Number(match.oldRating);
+        totals.set(match.mapName, item);
+    });
+    return [...totals.values()].sort((a, b) => b.matches - a.matches);
+}
+
+function personalSpecializations(matches) {
+    const totals = new Map();
+    matches.forEach(match => (match.specializations || []).forEach(name => {
+        const item = totals.get(name) || { name, matches: 0, wins: 0 };
+        item.matches += 1;
+        item.wins += match.won ? 1 : 0;
+        totals.set(name, item);
+    }));
+    return [...totals.values()].sort((a, b) => b.matches - a.matches);
+}
+
+function renderPersonalDashboard(profile) {
+    const maps = personalMaps(profile.recentMatches);
+    const specs = personalSpecializations(profile.recentMatches);
+    $("#dataset-version").textContent = profile.displayName;
+    $("#dataset-matches").textContent = `${formatNumber(profile.recentMatches.length)} RECENTI`;
+    $("#kpi-units").textContent = formatNumber(profile.career.matches);
+    $("#kpi-maps").textContent = formatNumber(maps.length);
+    $("#kpi-winrate").textContent = profile.career.winRate == null ? "N/D" : `${formatDecimal(profile.career.winRate)}%`;
+    $("#kpi-winrate-label").textContent = `${formatNumber(profile.career.wins)} vittorie`;
+    $("#kpi-kd").textContent = formatDecimal(profile.currentRating, 0);
+    $("#kpi-kd-label").textContent = `rank #${formatOptionalNumber(profile.leaderboardRank)} · ${profile.source}`;
+    renderTopUnits(profile.mostUsedUnits, profile.source);
+    renderMapPopularity(maps);
+    renderSpecializationOverview(specs);
+}
+
+function renderTopUnits(items, source) {
     const container = $("#top-units-chart");
     container.classList.remove("loading-block");
     const ranked = [...items]
-        .filter(item => metricNumber(item.deploymentEfficiency) !== null)
-        .sort((a, b) => b.deploymentEfficiency.value - a.deploymentEfficiency.value)
+        .sort((a, b) => b.deployed - a.deployed)
         .slice(0, 6);
     if (!ranked.length) {
         container.innerHTML = emptyMarkup(
-            "Nessuna telemetria unità",
-            "Importa una partita per generare il ranking di efficienza."
+            "Dettaglio unità non pubblicato",
+            `${source} fornisce match, mappe e brigate per questo profilo, ma non le singole unità schierate.`
         );
         return;
     }
-    const max = Math.max(...ranked.map(item => item.deploymentEfficiency.value), 1);
+    const max = Math.max(...ranked.map(item => item.deployed), 1);
     container.innerHTML = ranked.map((item, index) => `
         <div class="rank-row">
             <span class="rank-index">${String(index + 1).padStart(2, "0")}</span>
-            <span class="rank-name"><strong>${escapeHtml(item.unitName)}</strong><small>${escapeHtml(item.category)} · ${escapeHtml(item.faction)}</small></span>
-            <span class="bar-track"><i class="bar-fill" style="width:${Math.max(4, item.deploymentEfficiency.value / max * 100)}%"></i></span>
-            <span class="rank-value">${formatDecimal(item.deploymentEfficiency.value)}×</span>
+            <span class="rank-name"><strong>${escapeHtml(item.unitName)}</strong><small>${formatNumber(item.kills)} kill · ${formatNumber(item.refunded)} rimborsi</small></span>
+            <span class="bar-track"><i class="bar-fill" style="width:${Math.max(4, item.deployed / max * 100)}%"></i></span>
+            <span class="rank-value">${formatNumber(item.deployed)}×</span>
         </div>`).join("");
 }
 
@@ -192,7 +201,7 @@ function renderMapPopularity(items) {
         return;
     }
     container.innerHTML = items.slice(0, 5).map(item => `
-        <div class="compact-row"><span><strong>${escapeHtml(item.mapName)}</strong><small>${formatNumber(item.sampleMatches)} match · ${formatNumber(item.samplePlayers)} player</small></span><b>${metricText(item.playRate, "%")}</b></div>
+        <div class="compact-row"><span><strong>${escapeHtml(item.name)}</strong><small>${formatNumber(item.matches)} match · ${formatNumber(item.wins)} vittorie</small></span><b>${item.matches ? formatDecimal(item.wins * 100 / item.matches) : 0}%</b></div>
     `).join("");
 }
 
@@ -204,7 +213,7 @@ function renderSpecializationOverview(items) {
         return;
     }
     container.innerHTML = items.slice(0, 5).map(item => `
-        <div class="spec-row"><span class="faction-chip">${escapeHtml(item.faction.slice(0, 3))}</span><span><strong>${escapeHtml(item.specializationName)}</strong><small>${formatNumber(item.sampleUnits)} unità · ${formatNumber(item.sampleMatches)} match</small></span><b>${metricText(item.winRate, "%")}</b></div>
+        <div class="spec-row"><span class="faction-chip">BRG</span><span><strong>${escapeHtml(item.name)}</strong><small>${formatNumber(item.matches)} match personali</small></span><b>${item.matches ? formatDecimal(item.wins * 100 / item.matches) : 0}%</b></div>
     `).join("");
 }
 
@@ -371,83 +380,100 @@ function closeUnitDrawer() {
 }
 
 async function loadAnalytics() {
-    if (!state.analyticsLoaded) {
-        try {
-            const [units, maps, specializations] = await Promise.all([
-                api.unitAnalytics(), api.mapAnalytics(), api.specializationAnalytics()
-            ]);
-            state.analytics = { units, maps, specializations };
-            state.analyticsLoaded = true;
-        } catch (error) {
-            $("#analytics-table-body").innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
-            return;
-        }
+    if (!api.isAuthenticated()) return renderAnalyticsGate("Accedi per analizzare il tuo Steam ID.");
+    if (!state.account) return;
+    const steamId = state.account.playerProfile?.steamId;
+    if (!steamId) return renderAnalyticsGate("Collega lo Steam ID in My Debrief.");
+    try {
+        await ensurePlayerProfile(steamId);
+        renderAnalytics();
+    } catch (error) {
+        renderAnalyticsGate(error.message);
     }
-    renderAnalytics();
 }
 
 const analyticsDefinitions = {
     units: {
-        code: "UNIT PERFORMANCE",
-        heading: "Rendimento delle unità",
-        columns: ["Asset", "Campione", "Play rate", "Win rate", "Economic K/D", "Efficienza", "Survival"],
-        name: item => `${item.unitName} ${item.externalUnitId} ${item.faction} ${item.category}`,
-        row: item => `<tr><td>${escapeHtml(item.unitName)}<span class="table-sub">${escapeHtml(item.faction)} · ${escapeHtml(item.category)}</span></td><td>${formatNumber(item.sampleMatches)}<span class="table-sub">${formatNumber(item.samplePlayers)} player</span></td>${metricCell(item.playRate, "%")}${metricCell(item.winRate, "%")}${metricCell(item.economicKd)}${metricCell(item.deploymentEfficiency)}${metricCell(item.survivalRate, "%")}</tr>`
+        code: "PERSONAL UNIT USAGE",
+        heading: "Unità impiegate dal comandante",
+        columns: ["Asset", "Schierate", "Rimborsate", "Kill", "Danno inflitto", "Danno ricevuto"],
+        name: item => item.unitName,
+        row: item => `<tr><td>${escapeHtml(item.unitName)}<span class="table-sub">provider unit #${formatNumber(item.unitId)}</span></td><td>${formatNumber(item.deployed)}</td><td>${formatNumber(item.refunded)}</td><td>${formatNumber(item.kills)}</td><td>${formatNumber(item.damageDealt)}</td><td>${formatNumber(item.damageReceived)}</td></tr>`
     },
     maps: {
-        code: "THEATRE PERFORMANCE",
-        heading: "Rendimento per mappa",
-        columns: ["Mappa", "Campione", "Play rate", "Win rate", "Economic K/D", "Damage ratio", "Distrutto"],
-        name: item => item.mapName,
-        row: item => `<tr><td>${escapeHtml(item.mapName)}</td><td>${formatNumber(item.sampleMatches)}<span class="table-sub">${formatNumber(item.samplePlayers)} player</span></td>${metricCell(item.playRate, "%")}${metricCell(item.winRate, "%")}${metricCell(item.economicKd)}${metricCell(item.damageRatio)}<td>${formatNumber(item.destroyedValue)}</td></tr>`
+        code: "PERSONAL THEATRE PERFORMANCE",
+        heading: "Rendimento personale per mappa",
+        columns: ["Mappa", "Match", "Vittorie", "Sconfitte", "Win rate", "Variazione ELO"],
+        name: item => item.name,
+        row: item => `<tr><td>${escapeHtml(item.name)}</td><td>${formatNumber(item.matches)}</td><td>${formatNumber(item.wins)}</td><td>${formatNumber(item.matches - item.wins)}</td><td>${formatDecimal(item.wins * 100 / item.matches)}%</td><td>${item.ratingDelta >= 0 ? "+" : ""}${formatDecimal(item.ratingDelta, 1)}</td></tr>`
     },
     specializations: {
-        code: "FORMATION PERFORMANCE",
-        heading: "Rendimento delle specializzazioni",
-        columns: ["Specializzazione", "Campione", "Play rate", "Win rate", "Economic K/D", "Efficienza", "Survival"],
-        name: item => `${item.specializationName} ${item.faction}`,
-        row: item => `<tr><td>${escapeHtml(item.specializationName)}<span class="table-sub">${escapeHtml(item.faction)} · ${formatNumber(item.sampleUnits)} unità</span></td><td>${formatNumber(item.sampleMatches)}<span class="table-sub">${formatNumber(item.samplePlayers)} player</span></td>${metricCell(item.playRate, "%")}${metricCell(item.winRate, "%")}${metricCell(item.economicKd)}${metricCell(item.deploymentEfficiency)}${metricCell(item.survivalRate, "%")}</tr>`
+        code: "PERSONAL FORMATION PERFORMANCE",
+        heading: "Brigate usate dal comandante",
+        columns: ["Brigata", "Match", "Vittorie", "Sconfitte", "Win rate"],
+        name: item => item.name,
+        row: item => `<tr><td>${escapeHtml(item.name)}</td><td>${formatNumber(item.matches)}</td><td>${formatNumber(item.wins)}</td><td>${formatNumber(item.matches - item.wins)}</td><td>${formatDecimal(item.wins * 100 / item.matches)}%</td></tr>`
     }
 };
 
-function metricCell(metric, suffix = "") {
-    const title = metricNumber(metric) === null ? metric?.status || "NO_DATA" : "VALID";
-    return `<td><span class="metric-value ${metricClass(metric)}" title="${escapeHtml(title)}">${metricText(metric, suffix)}</span></td>`;
+function personalAnalytics() {
+    const profile = state.playerProfile;
+    return {
+        units: profile?.mostUsedUnits || [],
+        maps: personalMaps(profile?.recentMatches || []),
+        specializations: personalSpecializations(profile?.recentMatches || [])
+    };
 }
 
 function renderAnalytics() {
+    if (!state.playerProfile) return renderAnalyticsGate("Profilo personale non caricato.");
     const definition = analyticsDefinitions[state.analyticsTab];
     const search = $("#analytics-search").value.trim().toLowerCase();
-    const items = state.analytics[state.analyticsTab]
+    const items = personalAnalytics()[state.analyticsTab]
         .filter(item => definition.name(item).toLowerCase().includes(search));
     $("#analytics-code").textContent = definition.code;
     $("#analytics-heading").textContent = definition.heading;
+    $("#analytics-scope").textContent = `${state.playerProfile.displayName} / ${state.playerProfile.source}`;
     $("#analytics-table-head").innerHTML = `<tr>${definition.columns.map(column => `<th>${escapeHtml(column)}</th>`).join("")}</tr>`;
     $("#analytics-table-body").innerHTML = items.length
         ? items.map(definition.row).join("")
-        : `<tr><td colspan="${definition.columns.length}">${emptyMarkup("Nessun dato disponibile", "Importa partite o modifica il filtro.")}</td></tr>`;
-    renderAnalyticsSummary(items);
+        : `<tr><td colspan="${definition.columns.length}">${emptyMarkup(
+            state.analyticsTab === "units" ? "Dettaglio unità non pubblicato" : "Nessun dato personale disponibile",
+            state.analyticsTab === "units"
+                ? `${state.playerProfile.source} non espone le unità schierate per questo profilo; mappe e brigate sono disponibili nelle altre schede.`
+                : "Il provider non ha restituito elementi per i match recenti."
+        )}</td></tr>`;
+    renderAnalyticsSummary(state.playerProfile);
 }
 
-function renderAnalyticsSummary(items) {
-    const sampleMatches = Math.max(...items.map(item => item.datasetMatches || 0), 0);
-    const validWinRates = items.map(item => metricNumber(item.winRate)).filter(value => value !== null);
-    const validKds = items.map(item => metricNumber(item.economicKd)).filter(value => value !== null);
-    const average = values => values.length
-        ? values.reduce((sum, value) => sum + Number(value), 0) / values.length
-        : null;
+function renderAnalyticsSummary(profile) {
+    const recent = profile.recentMatches;
+    const recentWins = recent.filter(match => match.won).length;
+    const ratingDelta = recent.reduce((sum, match) => sum + (
+        match.oldRating != null && match.newRating != null
+            ? Number(match.newRating) - Number(match.oldRating)
+            : 0
+    ), 0);
     $("#analytics-summary").innerHTML = [
-        ["RIGHE ANALIZZATE", formatNumber(items.length)],
-        ["MATCH NEL DATASET", formatNumber(sampleMatches)],
-        ["WIN RATE MEDIO", average(validWinRates) === null ? "N/D" : `${formatDecimal(average(validWinRates))}%`],
-        ["ECONOMIC K/D MEDIO", average(validKds) === null ? "N/D" : formatDecimal(average(validKds))]
+        ["MATCH CARRIERA", formatNumber(profile.career.matches)],
+        ["MATCH RECENTI", formatNumber(recent.length)],
+        ["WIN RATE RECENTE", recent.length ? `${formatDecimal(recentWins * 100 / recent.length)}%` : "N/D"],
+        ["VARIAZIONE ELO", `${ratingDelta >= 0 ? "+" : ""}${formatDecimal(ratingDelta, 1)}`]
     ].map(([label, value]) => `<article class="summary-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
+}
+
+function renderAnalyticsGate(message) {
+    $("#analytics-scope").textContent = "ACCOUNT REQUIRED";
+    $("#analytics-summary").innerHTML = "";
+    $("#analytics-table-head").innerHTML = "";
+    $("#analytics-table-body").innerHTML = `<tr><td>${emptyMarkup("Profilo personale richiesto", message)}</td></tr>`;
 }
 
 function updateAccountButton() {
     $("#auth-button").textContent = state.account
         ? `Account · ${state.account.username}`
         : "Accedi";
+    $("#global-logout").hidden = !state.account;
 }
 
 function showAccountStage(stage) {
@@ -488,10 +514,15 @@ async function loadAccount() {
         const current = await api.currentUser();
         state.account = await api.user(current.id);
         updateAccountButton();
-        if (state.route !== "player") return;
         const steamId = state.account.playerProfile?.steamId;
-        if (steamId) await loadPlayerConsole(steamId);
-        else showSteamLink();
+        if (state.route === "player") {
+            if (steamId) await loadPlayerConsole(steamId);
+            else showSteamLink();
+        } else if (state.route === "dashboard") {
+            await loadDashboard();
+        } else if (state.route === "analytics") {
+            await loadAnalytics();
+        }
     } catch (error) {
         if (error.status === 401 || !api.isAuthenticated()) logout(false);
         else {
@@ -507,7 +538,7 @@ function openPersonalDebrief() {
     if (!api.isAuthenticated()) return showGuest();
     if (!state.account) return loadAccount();
     const steamId = state.account.playerProfile?.steamId;
-    if (steamId && !state.playerProfile && !state.playerLoading) loadPlayerConsole(steamId);
+    if (steamId && !state.playerLoading) loadPlayerConsole(steamId);
     else if (!steamId) showSteamLink();
 }
 
@@ -525,6 +556,8 @@ async function submitLogin(event) {
         );
         api.setToken(response.accessToken);
         state.account = null;
+        state.playerProfile = null;
+        state.dashboardLoaded = false;
         await loadAccount();
         showToast("Accesso effettuato", "success");
     } catch (error) {
@@ -549,6 +582,8 @@ async function submitRegistration(event) {
         const response = await api.login(username, password);
         api.setToken(response.accessToken);
         state.account = null;
+        state.playerProfile = null;
+        state.dashboardLoaded = false;
         await loadAccount();
         showToast("Account creato: ora collega Steam", "success");
     } catch (error) {
@@ -570,6 +605,8 @@ async function submitSteamLink(event) {
     try {
         state.account = await api.linkSteam(state.account.id, steamId);
         state.playerProfile = null;
+        state.playerRequest = null;
+        state.dashboardLoaded = false;
         updateAccountButton();
         await loadPlayerConsole(steamId);
         showToast("Steam ID collegato all'account", "success");
@@ -585,9 +622,13 @@ function logout(notify = true) {
     api.setToken(null);
     state.account = null;
     state.playerProfile = null;
+    state.playerRequest = null;
+    state.dashboardLoaded = false;
     state.trend = [];
     updateAccountButton();
     showGuest();
+    if (state.route === "dashboard") renderPersonalGate("Accedi per caricare il tuo Command Center.");
+    if (state.route === "analytics") renderAnalyticsGate("Accedi per analizzare il tuo Steam ID.");
     if (notify) showToast("Sessione terminata", "success");
 }
 
@@ -597,28 +638,41 @@ function changeSteamPlayer() {
 }
 
 async function loadPlayerConsole(steamId) {
-    state.playerLoading = true;
     try {
         showAccountStage("console");
         $("#player-display-name").textContent = "Recupero dati…";
         $("#player-matches").innerHTML = '<tr><td colspan="7">Sincronizzazione della cronologia in corso…</td></tr>';
-        const profile = await api.steamPlayer(steamId);
-        state.playerProfile = profile;
+        const profile = await ensurePlayerProfile(steamId);
         const trend = [...profile.recentMatches]
+            .filter(match => Number(match.newRating) > 0)
             .reverse()
             .map(match => ({ ...match, startedAt: match.endedAt }));
         state.trend = trend;
         renderPlayerHeader(profile);
         renderPlayerMetrics(profile);
         renderPlayerTrend(trend);
-        renderPlayerUnits(profile.mostUsedUnits);
-        renderPlayerMatches(profile.recentMatches);
+        renderPlayerUnits(profile.mostUsedUnits, profile.source);
+        renderPlayerMatches(profile.recentMatches, profile.source);
     } catch (error) {
         showSteamLink(`Profilo collegato, ma le statistiche non sono disponibili: ${error.message}`);
         throw error;
-    } finally {
-        state.playerLoading = false;
     }
+}
+
+async function ensurePlayerProfile(steamId) {
+    if (state.playerProfile?.steamId === steamId) return state.playerProfile;
+    if (state.playerRequest) return state.playerRequest;
+    state.playerLoading = true;
+    state.playerRequest = api.steamPlayer(steamId)
+        .then(profile => {
+            state.playerProfile = profile;
+            return profile;
+        })
+        .finally(() => {
+            state.playerLoading = false;
+            state.playerRequest = null;
+        });
+    return state.playerRequest;
 }
 
 function renderPlayerHeader(profile) {
@@ -626,7 +680,7 @@ function renderPlayerHeader(profile) {
     $("#player-display-name").textContent = profile.displayName;
     $("#player-handle").textContent = `STEAM ${profile.steamId} · LVL ${profile.level} · RANK #${profile.leaderboardRank || "—"} · ${profile.source}`;
     $("#player-current-elo").textContent = formatDecimal(profile.currentRating, 0);
-    const matches = profile.recentMatches;
+    const matches = profile.recentMatches.filter(match => Number(match.newRating) > 0);
     const latest = matches[0];
     const oldest = matches[matches.length - 1];
     const delta = latest?.newRating != null && oldest?.oldRating != null
@@ -664,11 +718,14 @@ function renderPlayerTrend(trend) {
     window.requestAnimationFrame(() => drawLineChart(canvas, trend));
 }
 
-function renderPlayerUnits(units) {
+function renderPlayerUnits(units, source) {
     const container = $("#player-units");
     container.classList.remove("loading-block");
     if (!units.length) {
-        container.innerHTML = emptyMarkup("Nessun asset impiegato", "Non risultano unità nei match recenti.");
+        container.innerHTML = emptyMarkup(
+            "Dettaglio unità non pubblicato",
+            `${source} non restituisce le singole unità schierate per questo profilo. Non significa che non siano state usate.`
+        );
         return;
     }
     container.innerHTML = [...units]
@@ -678,9 +735,10 @@ function renderPlayerUnits(units) {
         .join("");
 }
 
-function renderPlayerMatches(matches) {
+function renderPlayerMatches(matches, source) {
+    const detailed = source !== "BATTLEGROUP";
     $("#player-matches").innerHTML = matches.length
-        ? matches.map(match => `<tr><td><span class="result-badge ${match.won ? "win" : "loss"}">${match.won ? "W" : "L"}</span></td><td>${escapeHtml(match.mapName)}</td><td>${formatNumber(Math.round(match.durationSeconds / 60))} min</td><td>${formatDecimal(match.oldRating, 0)} → ${formatDecimal(match.newRating, 0)}</td><td>${formatNumber(match.destructionScore)}</td><td>${formatNumber(match.lossesScore)}</td><td>${formatDate(match.endedAt)}</td></tr>`).join("")
+        ? matches.map(match => `<tr><td><span class="result-badge ${match.won ? "win" : "loss"}">${match.won ? "W" : "L"}</span></td><td>${escapeHtml(match.mapName)}</td><td>${detailed ? `${formatNumber(Math.round(match.durationSeconds / 60))} min` : "N/D"}</td><td>${Number(match.newRating) > 0 ? `${formatDecimal(match.oldRating, 0)} → ${formatDecimal(match.newRating, 0)}` : "N/D"}</td><td>${detailed ? formatNumber(match.destructionScore) : "N/D"}</td><td>${detailed ? formatNumber(match.lossesScore) : "N/D"}</td><td>${formatDate(match.endedAt)}</td></tr>`).join("")
         : `<tr><td colspan="7">${emptyMarkup("Nessun after action report", "BArmory non ha restituito partite nelle settimane analizzate.")}</td></tr>`;
 }
 
@@ -699,6 +757,7 @@ function bindEvents() {
     $("#auth-button").addEventListener("click", () => {
         location.hash = "player";
     });
+    $("#global-logout").addEventListener("click", () => logout());
     $$('[data-auth-mode]').forEach(button => button.addEventListener(
         "click", () => switchAuthMode(button.dataset.authMode)
     ));
