@@ -1,5 +1,8 @@
 package it.alessiogori.battledebrief;
 
+import it.alessiogori.battledebrief.match.repository.GameMatchRepository;
+import it.alessiogori.battledebrief.match.repository.MatchPerformanceRepository;
+import it.alessiogori.battledebrief.match.repository.UnitMatchPerformanceRepository;
 import it.alessiogori.battledebrief.player.repository.PlayerProfileRepository;
 import it.alessiogori.battledebrief.user.entity.Role;
 import it.alessiogori.battledebrief.user.repository.UserRepository;
@@ -33,6 +36,15 @@ class DatabaseSchemaValidationTests {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private GameMatchRepository gameMatchRepository;
+
+    @Autowired
+    private MatchPerformanceRepository matchPerformanceRepository;
+
+    @Autowired
+    private UnitMatchPerformanceRepository unitMatchPerformanceRepository;
+
     @Test
     void schemaMatchesTheJpaModel() {
     }
@@ -49,5 +61,12 @@ class DatabaseSchemaValidationTests {
                 "Admin123!",
                 admin.getPasswordHash()
         )).isTrue();
+    }
+
+    @Test
+    void demoTelemetryProvidesInitialFrontendAnalytics() {
+        assertThat(gameMatchRepository.count()).isEqualTo(6);
+        assertThat(matchPerformanceRepository.count()).isEqualTo(6);
+        assertThat(unitMatchPerformanceRepository.count()).isEqualTo(6);
     }
 }
