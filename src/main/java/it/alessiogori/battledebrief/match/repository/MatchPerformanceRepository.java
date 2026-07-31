@@ -17,4 +17,9 @@ public interface MatchPerformanceRepository
     List<MatchPerformance> findAllByPlayerProfileIdOrderByGameMatchStartedAtDesc(
             Long playerProfileId
     );
+
+    boolean existsByGameMatchIdAndPlayerProfileUserId(
+            Long gameMatchId,
+            Long userId
+    );
 }
