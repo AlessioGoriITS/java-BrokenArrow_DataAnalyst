@@ -254,7 +254,9 @@ target/site/jacoco/index.html
 ```
 
 La copertura corrente supera il requisito minimo del 35% previsto dalla
-consegna.
+consegna. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
+fallire automaticamente la build se la copertura complessiva delle linee
+scende sotto tale soglia.
 
 ## File di consegna
 

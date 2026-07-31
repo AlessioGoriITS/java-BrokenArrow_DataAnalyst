@@ -258,13 +258,15 @@ e health endpoint.
 I test usano H2 in modalità MySQL e non dipendono dalla rete.
 
 ~~~text
-Test: 76
+Test: 77
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 93,89%
+Copertura linee JaCoCo: 94,38%
 ~~~
 
-Il requisito minimo del 35% è ampiamente superato.
+Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
+esegue inoltre `jacoco:check` e interrompe la build qualora la copertura
+complessiva delle linee scenda sotto il 35%.
 
 ## 13. Postman
 
