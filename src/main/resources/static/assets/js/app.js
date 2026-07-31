@@ -32,6 +32,10 @@ const formatOptionalNumber = value => value === null || value === undefined
 const formatDecimal = (value, digits = 2) => value === null || value === undefined
     ? "—"
     : Number(value).toLocaleString("it-IT", { maximumFractionDigits: digits });
+const formatHours = seconds => (Number(seconds ?? 0) / 3600).toLocaleString(
+    "it-IT",
+    { minimumFractionDigits: 1, maximumFractionDigits: 1 }
+);
 const formatDate = value => value
     ? new Date(value).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
@@ -697,7 +701,7 @@ function renderPlayerMetrics(profile) {
         ["MATCH", formatNumber(career.matches), `${formatNumber(career.wins)} vittorie`],
         ["WIN RATE", career.winRate == null ? "N/D" : `${formatDecimal(career.winRate)}%`, `${formatNumber(career.losses)} sconfitte`],
         ["K/D", formatDecimal(career.kdRatio), `${formatNumber(career.kills)} / ${formatNumber(career.deaths)}`],
-        ["ZONE CATTURATE", formatNumber(career.capturedZones), `${formatNumber(career.playTimeSeconds / 3600)} ore giocate`]
+        ["ZONE CATTURATE", formatNumber(career.capturedZones), `${formatHours(career.playTimeSeconds)} ore giocate`]
     ];
     $("#player-metrics").innerHTML = cards.map(([label, value, detail]) => `
         <article class="metric-card"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>

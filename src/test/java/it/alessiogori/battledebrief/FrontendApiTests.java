@@ -55,6 +55,9 @@ class FrontendApiTests {
                 ))
                 .andExpect(content().string(containsString(
                         "api.linkSteam"
+                )))
+                .andExpect(content().string(containsString(
+                        "formatHours(career.playTimeSeconds)"
                 )));
     }
 
