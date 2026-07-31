@@ -1,0 +1,28 @@
+package it.alessiogori.battledebrief.analytics.controller;
+
+import it.alessiogori.battledebrief.analytics.dto.DatasetUnitAnalyticsResponse;
+import it.alessiogori.battledebrief.analytics.service.DatasetAnalyticsService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/analytics")
+public class DatasetAnalyticsController {
+
+    private final DatasetAnalyticsService analyticsService;
+
+    public DatasetAnalyticsController(
+            DatasetAnalyticsService analyticsService
+    ) {
+        this.analyticsService = analyticsService;
+    }
+
+    @GetMapping("/units")
+    public ResponseEntity<List<DatasetUnitAnalyticsResponse>> findUnits() {
+        return ResponseEntity.ok(analyticsService.analyzeUnits());
+    }
+}

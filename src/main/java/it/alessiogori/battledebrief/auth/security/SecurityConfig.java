@@ -77,7 +77,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/units/**",
-                                "/api/specializations/**"
+                                "/api/specializations/**",
+                                "/api/analytics/**"
                         )
                         .permitAll()
                         .requestMatchers("/api/admin/**")
