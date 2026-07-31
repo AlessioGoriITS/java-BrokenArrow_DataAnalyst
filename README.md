@@ -253,6 +253,7 @@ postman/Local.postman_environment.json
 Dockerfile
 docker-compose.yml
 .env.example
+docs/RELAZIONE_TECNICA.md                    # relazione di progetto
 ```
 
 ## Note di sicurezza
