@@ -8,10 +8,27 @@ export class ApiError extends Error {
 }
 
 class ApiClient {
+    constructor() {
+        this.token = sessionStorage.getItem("battle-debrief-token");
+    }
+
+    setToken(token) {
+        this.token = token || null;
+        if (this.token) sessionStorage.setItem("battle-debrief-token", this.token);
+        else sessionStorage.removeItem("battle-debrief-token");
+    }
+
+    isAuthenticated() {
+        return Boolean(this.token);
+    }
+
     async request(path, options = {}) {
         const headers = new Headers(options.headers || {});
         if (options.body && !headers.has("Content-Type")) {
             headers.set("Content-Type", "application/json");
+        }
+        if (options.auth !== false && this.token) {
+            headers.set("Authorization", `Bearer ${this.token}`);
         }
         let response;
         try {
@@ -26,6 +43,7 @@ class ApiClient {
             : await response.text();
 
         if (!response.ok) {
+            if (response.status === 401 && options.auth !== false) this.setToken(null);
             throw new ApiError(
                 payload?.message || `Richiesta fallita (${response.status})`,
                 response.status,
@@ -33,6 +51,35 @@ class ApiClient {
             );
         }
         return payload;
+    }
+
+    register(username, email, password) {
+        return this.request("/api/auth/register", {
+            method: "POST", auth: false,
+            body: JSON.stringify({ username, email, password })
+        });
+    }
+
+    login(username, password) {
+        return this.request("/api/auth/login", {
+            method: "POST", auth: false,
+            body: JSON.stringify({ username, password })
+        });
+    }
+
+    currentUser() {
+        return this.request("/api/auth/me");
+    }
+
+    user(userId) {
+        return this.request(`/api/users/${userId}`);
+    }
+
+    linkSteam(userId, steamId) {
+        return this.request(`/api/users/${userId}/steam`, {
+            method: "PUT",
+            body: JSON.stringify({ steamId })
+        });
     }
 
     health() {

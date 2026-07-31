@@ -30,7 +30,7 @@
             <span class="status-dot"></span>
             <span>LINKING</span>
         </div>
-        <button class="button button-ghost" id="auth-button" type="button">Steam ID</button>
+        <button class="button button-ghost" id="auth-button" type="button">Accedi</button>
         <button class="menu-button" id="menu-button" type="button" aria-label="Apri menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
@@ -155,23 +155,56 @@
             <div class="auth-copy">
                 <p class="eyebrow"><span>04</span> PERSONAL OPERATIONS FILE</p>
                 <h1 id="player-title">Il tuo campo di battaglia,<br><em>misurato.</em></h1>
-                <p>Inserisci il tuo Steam ID per visualizzare evoluzione ELO, storico partite e rendimento delle unità impiegate. Non serve creare un account.</p>
-                <ul><li>Trend ELO cronologico</li><li>Win rate e valore economico</li><li>Analisi unità personale</li></ul>
+                <p>Crea il tuo account Battle Debrief e collega una volta il tuo Steam ID. Da quel momento il tuo dossier personale sarà sempre associato al profilo corretto.</p>
+                <ul><li>Account protetto con sessione JWT</li><li>Steam ID univoco collegato al profilo</li><li>Trend ELO, match history e analisi personale</li></ul>
             </div>
-            <form class="login-card" id="steam-search-form">
-                <div class="login-card-head"><span>PUBLIC COMMANDER LOOKUP</span><i></i></div>
-                <h2>Trova comandante</h2>
-                <p>Lo Steam ID è il codice numerico di 17 cifre del tuo profilo.</p>
-                <label><span>STEAM ID</span><input id="steam-id" name="steamId" inputmode="numeric" pattern="[0-9]{17}" minlength="17" maxlength="17" autocomplete="off" placeholder="7656119XXXXXXXXXX" required></label>
-                <p class="form-error" id="login-error" role="alert"></p>
-                <button class="button button-primary button-full" type="submit">Carica debrief</button>
-                <small>Nessuna password e nessun account locale.</small>
+            <div class="login-card">
+                <div class="login-card-head"><span>SECURE ACCOUNT ACCESS</span><i></i></div>
+                <div class="auth-tabs" role="tablist" aria-label="Accesso account">
+                    <button type="button" role="tab" aria-selected="true" data-auth-mode="login">Accedi</button>
+                    <button type="button" role="tab" aria-selected="false" data-auth-mode="register">Registrati</button>
+                </div>
+                <form class="auth-form" id="login-form">
+                    <h2>Bentornato</h2>
+                    <p>Accedi al tuo dossier personale.</p>
+                    <label><span>USERNAME</span><input id="login-username" name="username" maxlength="50" autocomplete="username" required></label>
+                    <label><span>PASSWORD</span><input id="login-password" name="password" type="password" maxlength="72" autocomplete="current-password" required></label>
+                    <p class="form-error" id="login-error" role="alert"></p>
+                    <button class="button button-primary button-full" type="submit">Accedi</button>
+                </form>
+                <form class="auth-form" id="register-form" hidden>
+                    <h2>Crea account</h2>
+                    <p>La password deve contenere maiuscola, minuscola, numero e simbolo.</p>
+                    <label><span>USERNAME</span><input id="register-username" name="username" minlength="3" maxlength="50" pattern="[A-Za-z0-9_.-]+" autocomplete="username" required></label>
+                    <label><span>EMAIL</span><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></label>
+                    <label><span>PASSWORD</span><input id="register-password" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+                    <p class="form-error" id="register-error" role="alert"></p>
+                    <button class="button button-primary button-full" type="submit">Crea account</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="steam-link-stage" class="auth-stage" hidden>
+            <div class="auth-copy">
+                <p class="eyebrow"><span>04</span> PROFILE CONNECTION</p>
+                <h1>Collega il tuo<br><em>Steam ID.</em></h1>
+                <p>Battle Debrief userà questo identificativo per recuperare le statistiche pubbliche del tuo comandante. Uno Steam ID può appartenere a un solo account.</p>
+                <ul><li>Nessuna password Steam richiesta</li><li>Validazione del profilo prima del salvataggio</li><li>Steam ID modificabile in seguito</li></ul>
+            </div>
+            <form class="login-card" id="steam-link-form">
+                <div class="login-card-head"><span>LINKED COMMANDER</span><i></i></div>
+                <h2 id="link-account-name">Collega comandante</h2>
+                <p>Inserisci il codice numerico di 17 cifre visibile nell'URL del tuo profilo Steam.</p>
+                <label><span>STEAM ID</span><input id="linked-steam-id" name="steamId" inputmode="numeric" pattern="[0-9]{17}" minlength="17" maxlength="17" autocomplete="off" placeholder="7656119XXXXXXXXXX" required></label>
+                <p class="form-error" id="steam-link-error" role="alert"></p>
+                <button class="button button-primary button-full" type="submit">Collega e carica</button>
+                <button class="text-button" id="link-logout" type="button">Esci dall'account</button>
             </form>
         </div>
 
         <div id="player-console" class="player-console" hidden>
             <div class="player-banner">
-                <div class="player-identity"><div class="avatar" id="player-avatar">DC</div><div><p class="eyebrow"><span>04</span> COMMANDER FILE</p><h1 id="player-display-name">Commander</h1><p id="player-handle">STEAM / LIVE</p><button class="text-button" id="change-player" type="button">Cambia Steam ID</button></div></div>
+                <div class="player-identity"><div class="avatar" id="player-avatar">DC</div><div><p class="eyebrow"><span>04</span> COMMANDER FILE</p><h1 id="player-display-name">Commander</h1><p id="player-handle">STEAM / LIVE</p><div class="player-actions"><button class="text-button" id="change-player" type="button">Cambia Steam ID</button><button class="text-button" id="logout-button" type="button">Esci</button></div></div></div>
                 <div class="player-elo"><span>CURRENT ELO</span><strong id="player-current-elo">—</strong><small id="player-elo-delta">— overall</small></div>
             </div>
             <div class="page-shell player-shell">

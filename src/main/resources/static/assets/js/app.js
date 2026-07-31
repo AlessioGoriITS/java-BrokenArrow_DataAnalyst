@@ -9,6 +9,8 @@ const state = {
     analytics: { units: [], maps: [], specializations: [] },
     unitPage: 0,
     unitLayout: "grid",
+    account: null,
+    accountLoading: false,
     playerProfile: null,
     playerLoading: false,
     trend: []
@@ -96,10 +98,7 @@ function navigate() {
 
     if (state.route === "hangar") loadHangar(state.unitPage);
     if (state.route === "analytics") loadAnalytics();
-    if (state.route === "player" && !state.playerProfile && !state.playerLoading) {
-        const steamId = localStorage.getItem("battle-debrief-steam-id");
-        if (steamId) loadPlayerConsole(steamId);
-    }
+    if (state.route === "player") openPersonalDebrief();
 }
 
 async function checkHealth() {
@@ -445,48 +444,162 @@ function renderAnalyticsSummary(items) {
     ].map(([label, value]) => `<article class="summary-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
 }
 
-async function searchSteamPlayer(event) {
+function updateAccountButton() {
+    $("#auth-button").textContent = state.account
+        ? `Account · ${state.account.username}`
+        : "Accedi";
+}
+
+function showAccountStage(stage) {
+    $("#player-guest").hidden = stage !== "guest";
+    $("#steam-link-stage").hidden = stage !== "link";
+    $("#player-console").hidden = stage !== "console";
+}
+
+function showGuest() {
+    showAccountStage("guest");
+}
+
+function showSteamLink(error = "") {
+    showAccountStage("link");
+    $("#link-account-name").textContent = state.account
+        ? `Account ${state.account.username}`
+        : "Collega comandante";
+    $("#linked-steam-id").value = state.account?.playerProfile?.steamId || "";
+    $("#steam-link-error").textContent = error;
+}
+
+function switchAuthMode(mode) {
+    $$('[data-auth-mode]').forEach(button => button.setAttribute(
+        "aria-selected", String(button.dataset.authMode === mode)
+    ));
+    $("#login-form").hidden = mode !== "login";
+    $("#register-form").hidden = mode !== "register";
+    $(`#${mode}-form input`)?.focus();
+}
+
+async function loadAccount() {
+    if (!api.isAuthenticated() || state.accountLoading) {
+        if (!api.isAuthenticated()) showGuest();
+        return;
+    }
+    state.accountLoading = true;
+    try {
+        const current = await api.currentUser();
+        state.account = await api.user(current.id);
+        updateAccountButton();
+        if (state.route !== "player") return;
+        const steamId = state.account.playerProfile?.steamId;
+        if (steamId) await loadPlayerConsole(steamId);
+        else showSteamLink();
+    } catch (error) {
+        if (error.status === 401 || !api.isAuthenticated()) logout(false);
+        else {
+            showGuest();
+            showToast(error.message, "error");
+        }
+    } finally {
+        state.accountLoading = false;
+    }
+}
+
+function openPersonalDebrief() {
+    if (!api.isAuthenticated()) return showGuest();
+    if (!state.account) return loadAccount();
+    const steamId = state.account.playerProfile?.steamId;
+    if (steamId && !state.playerProfile && !state.playerLoading) loadPlayerConsole(steamId);
+    else if (!steamId) showSteamLink();
+}
+
+async function submitLogin(event) {
     event.preventDefault();
     const button = $("button[type='submit']", event.currentTarget);
     const errorNode = $("#login-error");
     errorNode.textContent = "";
     button.disabled = true;
-    button.textContent = "Recupero dati…";
-    const steamId = $("#steam-id").value.trim();
+    button.textContent = "Accesso…";
     try {
-        await loadPlayerConsole(steamId);
-        localStorage.setItem("battle-debrief-steam-id", steamId);
-        showToast("Debrief Steam caricato", "success");
+        const response = await api.login(
+            $("#login-username").value.trim(),
+            $("#login-password").value
+        );
+        api.setToken(response.accessToken);
+        state.account = null;
+        await loadAccount();
+        showToast("Accesso effettuato", "success");
     } catch (error) {
         errorNode.textContent = error.message;
     } finally {
         button.disabled = false;
-        button.textContent = "Carica debrief";
+        button.textContent = "Accedi";
     }
 }
 
-function showPlayerConsole() {
-    $("#player-guest").hidden = true;
-    $("#player-console").hidden = false;
+async function submitRegistration(event) {
+    event.preventDefault();
+    const button = $("button[type='submit']", event.currentTarget);
+    const errorNode = $("#register-error");
+    errorNode.textContent = "";
+    button.disabled = true;
+    button.textContent = "Creazione…";
+    const username = $("#register-username").value.trim();
+    const password = $("#register-password").value;
+    try {
+        await api.register(username, $("#register-email").value.trim(), password);
+        const response = await api.login(username, password);
+        api.setToken(response.accessToken);
+        state.account = null;
+        await loadAccount();
+        showToast("Account creato: ora collega Steam", "success");
+    } catch (error) {
+        errorNode.textContent = error.message;
+    } finally {
+        button.disabled = false;
+        button.textContent = "Crea account";
+    }
 }
 
-function showSteamSearch() {
+async function submitSteamLink(event) {
+    event.preventDefault();
+    const button = $("button[type='submit']", event.currentTarget);
+    const errorNode = $("#steam-link-error");
+    const steamId = $("#linked-steam-id").value.trim();
+    errorNode.textContent = "";
+    button.disabled = true;
+    button.textContent = "Verifica profilo…";
+    try {
+        state.account = await api.linkSteam(state.account.id, steamId);
+        state.playerProfile = null;
+        updateAccountButton();
+        await loadPlayerConsole(steamId);
+        showToast("Steam ID collegato all'account", "success");
+    } catch (error) {
+        errorNode.textContent = error.message;
+    } finally {
+        button.disabled = false;
+        button.textContent = "Collega e carica";
+    }
+}
+
+function logout(notify = true) {
+    api.setToken(null);
+    state.account = null;
     state.playerProfile = null;
-    $("#player-guest").hidden = false;
-    $("#player-console").hidden = true;
-    $("#steam-id").focus();
+    state.trend = [];
+    updateAccountButton();
+    showGuest();
+    if (notify) showToast("Sessione terminata", "success");
 }
 
 function changeSteamPlayer() {
-    localStorage.removeItem("battle-debrief-steam-id");
-    showSteamSearch();
+    showSteamLink();
     location.hash = "player";
 }
 
 async function loadPlayerConsole(steamId) {
     state.playerLoading = true;
     try {
-        showPlayerConsole();
+        showAccountStage("console");
         $("#player-display-name").textContent = "Recupero dati…";
         $("#player-matches").innerHTML = '<tr><td colspan="7">Sincronizzazione della cronologia in corso…</td></tr>';
         const profile = await api.steamPlayer(steamId);
@@ -501,10 +614,7 @@ async function loadPlayerConsole(steamId) {
         renderPlayerUnits(profile.mostUsedUnits);
         renderPlayerMatches(profile.recentMatches);
     } catch (error) {
-        showSteamSearch();
-        $("#steam-id").value = steamId;
-        $("#login-error").textContent = error.message;
-        localStorage.removeItem("battle-debrief-steam-id");
+        showSteamLink(`Profilo collegato, ma le statistiche non sono disponibili: ${error.message}`);
         throw error;
     } finally {
         state.playerLoading = false;
@@ -589,8 +699,15 @@ function bindEvents() {
     $("#auth-button").addEventListener("click", () => {
         location.hash = "player";
     });
-    $("#steam-search-form").addEventListener("submit", searchSteamPlayer);
+    $$('[data-auth-mode]').forEach(button => button.addEventListener(
+        "click", () => switchAuthMode(button.dataset.authMode)
+    ));
+    $("#login-form").addEventListener("submit", submitLogin);
+    $("#register-form").addEventListener("submit", submitRegistration);
+    $("#steam-link-form").addEventListener("submit", submitSteamLink);
     $("#change-player").addEventListener("click", changeSteamPlayer);
+    $("#logout-button").addEventListener("click", () => logout());
+    $("#link-logout").addEventListener("click", () => logout());
     $("#unit-filters").addEventListener("submit", event => {
         event.preventDefault();
         loadHangar(0);
@@ -640,6 +757,7 @@ async function boot() {
     bindEvents();
     startClock();
     navigate();
+    if (api.isAuthenticated()) await loadAccount();
     await Promise.allSettled([
         checkHealth(),
         loadDashboard(),

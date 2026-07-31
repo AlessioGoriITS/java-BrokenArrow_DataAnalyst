@@ -33,6 +33,15 @@ class FrontendApiTests {
                 .andExpect(content().string(containsString("BATTLE")))
                 .andExpect(content().string(containsString(
                         "id=\"hangar-title\""
+                )))
+                .andExpect(content().string(containsString(
+                        "id=\"login-form\""
+                )))
+                .andExpect(content().string(containsString(
+                        "id=\"register-form\""
+                )))
+                .andExpect(content().string(containsString(
+                        "id=\"steam-link-form\""
                 )));
 
         mockMvc.perform(get("/assets/css/app.css"))
@@ -43,7 +52,10 @@ class FrontendApiTests {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(
                         "text/javascript"
-                ));
+                ))
+                .andExpect(content().string(containsString(
+                        "api.linkSteam"
+                )));
     }
 
     @Test
