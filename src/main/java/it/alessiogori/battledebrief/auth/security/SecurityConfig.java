@@ -78,6 +78,14 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/",
+                                "/index.html",
+                                "/assets/**",
+                                "/favicon.ico"
+                        )
+                        .permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/units/**",
                                 "/api/specializations/**",
                                 "/api/analytics/**"

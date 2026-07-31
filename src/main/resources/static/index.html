@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0d0f">
+    <meta name="description" content="Battle Debrief: intelligence operativa e statistiche per Broken Arrow.">
+    <title>Battle Debrief // Operations Intelligence</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Vai al contenuto</a>
+
+<header class="topbar">
+    <a class="brand" href="#dashboard" aria-label="Battle Debrief dashboard">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>BATTLE</strong><b>DEBRIEF</b></span>
+        <small>OPS INTELLIGENCE</small>
+    </a>
+
+    <nav class="main-nav" aria-label="Navigazione principale">
+        <a href="#dashboard" data-route="dashboard">Command</a>
+        <a href="#hangar" data-route="hangar">Hangar</a>
+        <a href="#analytics" data-route="analytics">Analytics</a>
+        <a href="#player" data-route="player">My Debrief</a>
+    </nav>
+
+    <div class="topbar-actions">
+        <div class="system-state" id="system-state" title="Stato API">
+            <span class="status-dot"></span>
+            <span>LINKING</span>
+        </div>
+        <button class="button button-ghost" id="auth-button" type="button">Accedi</button>
+        <button class="menu-button" id="menu-button" type="button" aria-label="Apri menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</header>
+
+<main id="main-content">
+    <section class="view is-active" data-view="dashboard" aria-labelledby="dashboard-title">
+        <div class="command-hero">
+            <div class="hero-grid" aria-hidden="true"></div>
+            <div class="hero-copy">
+                <p class="eyebrow"><span>01</span> LIVE DATASET / TACTICAL OVERVIEW</p>
+                <h1 id="dashboard-title">Conosci il campo.<br><em>Domina il debrief.</em></h1>
+                <p class="hero-lead">Prestazioni, valore economico ed evoluzione ELO trasformati in intelligence operativa leggibile.</p>
+                <div class="hero-actions">
+                    <a class="button button-primary" href="#analytics">Esplora le statistiche</a>
+                    <a class="button button-secondary" href="#hangar">Apri l'hangar</a>
+                </div>
+            </div>
+            <aside class="brief-card" aria-label="Situazione dataset">
+                <div class="brief-card-head"><span>SITREP</span><small id="sync-clock">--:--:-- Z</small></div>
+                <div class="brief-radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+                <dl class="brief-list">
+                    <div><dt>Dataset</dt><dd id="dataset-version">CONNECTING</dd></div>
+                    <div><dt>Campione</dt><dd id="dataset-matches">— MATCH</dd></div>
+                    <div><dt>Integrità</dt><dd class="positive">VERIFIED</dd></div>
+                </dl>
+            </aside>
+        </div>
+
+        <div class="page-shell dashboard-shell">
+            <section class="metric-strip" aria-label="Indicatori principali">
+                <article class="metric-card"><span>UNITÀ CENSITE</span><strong id="kpi-units">—</strong><small>asset operativi</small></article>
+                <article class="metric-card"><span>MAPPE ANALIZZATE</span><strong id="kpi-maps">—</strong><small>teatri registrati</small></article>
+                <article class="metric-card"><span>TOP WIN RATE</span><strong id="kpi-winrate">—</strong><small id="kpi-winrate-label">nessun campione</small></article>
+                <article class="metric-card"><span>TOP ECONOMIC K/D</span><strong id="kpi-kd">—</strong><small id="kpi-kd-label">nessun campione</small></article>
+            </section>
+
+            <div class="dashboard-grid">
+                <section class="panel panel-wide">
+                    <header class="panel-head">
+                        <div><p class="section-code">TACTICAL EFFECTIVENESS</p><h2>Unità ad alto impatto</h2></div>
+                        <a href="#analytics" class="text-link">Analisi completa →</a>
+                    </header>
+                    <div id="top-units-chart" class="bar-ranking loading-block"></div>
+                </section>
+
+                <section class="panel">
+                    <header class="panel-head">
+                        <div><p class="section-code">THEATRE CONTROL</p><h2>Mappe più giocate</h2></div>
+                    </header>
+                    <div id="map-popularity" class="compact-ranking loading-block"></div>
+                </section>
+
+                <section class="panel">
+                    <header class="panel-head">
+                        <div><p class="section-code">FORMATION READINESS</p><h2>Specializzazioni</h2></div>
+                    </header>
+                    <div id="specialization-overview" class="specialization-list loading-block"></div>
+                </section>
+
+                <section class="panel panel-wide intelligence-note">
+                    <div class="note-index">BD<br>01</div>
+                    <div>
+                        <p class="section-code">READ THE SIGNAL</p>
+                        <h2>I numeri hanno bisogno del loro campione.</h2>
+                        <p>Ogni rapporto mostra stato e numerosità. Un denominatore assente non diventa uno zero ingannevole: resta un dato non calcolabile.</p>
+                    </div>
+                    <div class="signal-legend">
+                        <span><i class="signal good"></i>Dati validi</span>
+                        <span><i class="signal idle"></i>Campione assente</span>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </section>
+
+    <section class="view" data-view="hangar" aria-labelledby="hangar-title">
+        <div class="page-hero compact-hero">
+            <div><p class="eyebrow"><span>02</span> ASSET DATABASE</p><h1 id="hangar-title">Unit <em>Hangar</em></h1><p>Confronta costi, protezione, mobilità e sistemi d'arma.</p></div>
+            <div class="hero-counter"><strong id="hangar-total">—</strong><span>ASSET DISPONIBILI</span></div>
+        </div>
+        <div class="page-shell">
+            <form class="filter-command" id="unit-filters">
+                <label class="search-field"><span>CERCA ASSET</span><input id="unit-search" type="search" placeholder="Nome o designazione…" autocomplete="off"></label>
+                <label><span>FAZIONE</span><select id="unit-faction"><option value="">Tutte</option><option value="USA">USA</option><option value="RUS">Russia</option></select></label>
+                <label><span>CATEGORIA</span><select id="unit-category"><option value="">Tutte</option></select></label>
+                <label><span>COSTO MAX</span><input id="unit-max-cost" type="number" min="0" step="10" placeholder="Nessun limite"></label>
+                <button class="button button-primary" type="submit">Applica filtri</button>
+            </form>
+            <div class="results-meta"><p id="unit-results-label">Caricamento hangar…</p><div class="view-toggle" aria-label="Visualizzazione"><button type="button" class="is-active" data-layout="grid">Griglia</button><button type="button" data-layout="list">Lista</button></div></div>
+            <div class="unit-grid" id="unit-grid" aria-live="polite"></div>
+            <div class="pagination" id="unit-pagination"></div>
+        </div>
+    </section>
+
+    <section class="view" data-view="analytics" aria-labelledby="analytics-title">
+        <div class="page-hero analytics-hero">
+            <div><p class="eyebrow"><span>03</span> DATASET INTELLIGENCE</p><h1 id="analytics-title">Combat <em>Analytics</em></h1><p>Misura adozione, vittorie e rendimento economico sul dataset locale.</p></div>
+            <div class="scope-badge"><span>DATA SCOPE</span><strong>LOCAL / VERIFIED</strong></div>
+        </div>
+        <div class="page-shell">
+            <div class="analytics-tabs" role="tablist" aria-label="Tipo di analisi">
+                <button role="tab" aria-selected="true" data-analytics-tab="units">Unità</button>
+                <button role="tab" aria-selected="false" data-analytics-tab="maps">Mappe</button>
+                <button role="tab" aria-selected="false" data-analytics-tab="specializations">Specializzazioni</button>
+            </div>
+            <div class="analytics-summary" id="analytics-summary"></div>
+            <section class="panel analytics-panel">
+                <header class="panel-head">
+                    <div><p class="section-code" id="analytics-code">UNIT PERFORMANCE</p><h2 id="analytics-heading">Rendimento delle unità</h2></div>
+                    <label class="table-search"><span class="sr-only">Filtra tabella</span><input id="analytics-search" type="search" placeholder="Filtra risultati…"></label>
+                </header>
+                <div class="data-table-wrap"><table class="data-table"><thead id="analytics-table-head"></thead><tbody id="analytics-table-body"></tbody></table></div>
+            </section>
+        </div>
+    </section>
+
+    <section class="view" data-view="player" aria-labelledby="player-title">
+        <div id="player-guest" class="auth-stage">
+            <div class="auth-copy">
+                <p class="eyebrow"><span>04</span> PERSONAL OPERATIONS FILE</p>
+                <h1 id="player-title">Il tuo campo di battaglia,<br><em>misurato.</em></h1>
+                <p>Accedi per visualizzare evoluzione ELO, storico partite e rendimento di ogni unità impiegata.</p>
+                <ul><li>Trend ELO cronologico</li><li>Win rate e valore economico</li><li>Analisi unità personale</li></ul>
+            </div>
+            <form class="login-card" id="login-form">
+                <div class="login-card-head"><span>SECURE ACCESS</span><i></i></div>
+                <h2>Commander login</h2>
+                <p>Usa il tuo account locale Battle Debrief.</p>
+                <label><span>USERNAME</span><input id="login-username" name="username" autocomplete="username" required value="demo"></label>
+                <label><span>PASSWORD</span><input id="login-password" name="password" type="password" autocomplete="current-password" required value="Demo123!"></label>
+                <p class="form-error" id="login-error" role="alert"></p>
+                <button class="button button-primary button-full" type="submit">Autentica comandante</button>
+                <small>Demo locale: demo / Demo123!</small>
+            </form>
+        </div>
+
+        <div id="player-console" class="player-console" hidden>
+            <div class="player-banner">
+                <div class="player-identity"><div class="avatar" id="player-avatar">DC</div><div><p class="eyebrow"><span>04</span> COMMANDER FILE</p><h1 id="player-display-name">Commander</h1><p id="player-handle">@user · LOCAL</p></div></div>
+                <div class="player-elo"><span>CURRENT ELO</span><strong id="player-current-elo">—</strong><small id="player-elo-delta">— overall</small></div>
+            </div>
+            <div class="page-shell player-shell">
+                <section class="metric-strip player-metrics" id="player-metrics"></section>
+                <div class="dashboard-grid">
+                    <section class="panel panel-wide">
+                        <header class="panel-head"><div><p class="section-code">RATING TELEMETRY</p><h2>ELO progression</h2></div><span class="chart-legend"><i></i>rating</span></header>
+                        <div class="elo-chart-wrap"><canvas id="elo-chart" aria-label="Grafico andamento ELO"></canvas><div id="elo-empty" class="empty-state" hidden></div></div>
+                    </section>
+                    <section class="panel">
+                        <header class="panel-head"><div><p class="section-code">UNIT MASTERY</p><h2>Asset più utilizzati</h2></div></header>
+                        <div id="player-units" class="compact-ranking loading-block"></div>
+                    </section>
+                    <section class="panel panel-wide">
+                        <header class="panel-head"><div><p class="section-code">AFTER ACTION REPORTS</p><h2>Partite recenti</h2></div></header>
+                        <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Esito</th><th>Mappa</th><th>Modalità</th><th>ELO</th><th>Distrutto</th><th>Perso</th><th>Data</th></tr></thead><tbody id="player-matches"></tbody></table></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="brand footer-brand"><span class="brand-mark"><i></i><i></i><i></i></span><span><strong>BATTLE</strong><b>DEBRIEF</b></span></div>
+    <p>Uno strumento analytics non ufficiale per Broken Arrow. I dati rappresentano esclusivamente il dataset locale.</p>
+    <span>JAVA / SPRING / MYSQL</span>
+</footer>
+
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="unit-drawer" id="unit-drawer" aria-label="Dettaglio unità" aria-hidden="true">
+    <button class="drawer-close" id="drawer-close" type="button" aria-label="Chiudi dettaglio">×</button>
+    <div id="unit-drawer-content"></div>
+</aside>
+
+<div class="toast-region" id="toast-region" aria-live="polite"></div>
+<script type="module" src="/assets/js/app.js"></script>
+</body>
+</html>
