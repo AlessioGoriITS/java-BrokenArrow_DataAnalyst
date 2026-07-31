@@ -266,6 +266,7 @@ function populateCategories(units) {
         option.value = category;
         option.textContent = category.replaceAll("_", " ");
         select.append(option);
+        known.add(category);
     });
     select.value = current;
 }
