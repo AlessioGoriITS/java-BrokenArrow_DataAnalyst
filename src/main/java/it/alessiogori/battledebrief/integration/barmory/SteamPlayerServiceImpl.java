@@ -74,9 +74,7 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
 
         JsonNode stats = gateway.findCommanderStats(steamId);
         Set<Long> matchIds = recentMatchIds(commanderId, weeks, limit);
-        List<RawMatch> rawMatches = matchIds.stream()
-                .map(id -> new RawMatch(id, gateway.findMatch(id)))
-                .toList();
+        List<RawMatch> rawMatches = availableMatches(matchIds);
         List<SteamMatchResponse> matches = rawMatches.stream()
                 .map(match -> toMatch(match, commanderId))
                 .sorted(Comparator.comparing(SteamMatchResponse::endedAt).reversed())
@@ -183,6 +181,24 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 .collect(java.util.stream.Collectors.toCollection(
                         LinkedHashSet::new
                 ));
+    }
+
+    private List<RawMatch> availableMatches(Set<Long> matchIds) {
+        List<RawMatch> matches = new ArrayList<>();
+        for (Long matchId : matchIds) {
+            try {
+                matches.add(new RawMatch(matchId, gateway.findMatch(matchId)));
+            } catch (ExternalProviderException ignored) {
+                // Providers can retain an ID after its match payload expires.
+                // One missing match must not discard the remaining telemetry.
+            }
+        }
+        if (!matchIds.isEmpty() && matches.isEmpty()) {
+            throw new ExternalProviderException(
+                    "BArmory match telemetry is temporarily unavailable"
+            );
+        }
+        return List.copyOf(matches);
     }
 
     private String isoWeek(LocalDate date) {

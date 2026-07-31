@@ -59,7 +59,7 @@ class SteamPlayerServiceImplTests {
                 }
                 """));
         when(gateway.findMatchIds(27516, "2026-W31"))
-                .thenReturn(List.of(7448867L));
+                .thenReturn(List.of(7448867L, 7448999L));
         when(gateway.findMatch(7448867L)).thenReturn(json("""
                 {
                   "MapId":22,"EndTime":1785500000,"TotalPlayTimeInSec":1820,
@@ -74,6 +74,9 @@ class SteamPlayerServiceImplTests {
                   }}
                 }
                 """));
+        when(gateway.findMatch(7448999L)).thenThrow(
+                new ExternalProviderException("Archived match missing")
+        );
         Unit unit = new Unit(
                 "ba_42", "M1A1 Abrams", "USA", "TANK", 240, "Main battle tank"
         );
@@ -83,6 +86,7 @@ class SteamPlayerServiceImplTests {
 
         assertThat(result.displayName()).isEqualTo("HotWinter");
         assertThat(result.source()).isEqualTo("BARMORY");
+        assertThat(result.recentMatches()).hasSize(1);
         assertThat(result.career().winRate()).isEqualByComparingTo("60.00");
         assertThat(result.recentMatches()).singleElement().satisfies(match -> {
             assertThat(match.matchId()).isEqualTo(7448867L);
