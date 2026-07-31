@@ -140,6 +140,19 @@ docker compose up --build
 Il primo comando elimina il volume MySQL locale e tutti i dati contenuti al suo
 interno.
 
+### Smoke test Docker
+
+Su Windows è disponibile uno script che costruisce lo stack, attende gli health
+check, verifica login admin e catalogo e infine arresta i container:
+
+```powershell
+.\scripts\docker-smoke-test.ps1 -ResetData
+```
+
+L'opzione `-ResetData` elimina preventivamente il volume del progetto ed è
+quindi distruttiva per i dati Docker locali. Ometterla per conservare il volume;
+usare `-KeepRunning` se si desidera lasciare i container attivi dopo il test.
+
 ## Avvio locale con Maven
 
 ### Prerequisiti

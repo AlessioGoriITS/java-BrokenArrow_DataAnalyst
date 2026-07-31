@@ -246,6 +246,9 @@ stato healthy di MySQL.
 La sintassi Compose è stata validata. L'esecuzione completa richiede Docker
 Engine attivo e si avvia con docker compose up --build.
 
+Lo script scripts/docker-smoke-test.ps1 automatizza build, attesa degli health
+check, login amministrativo, verifica del catalogo e arresto dei container.
+
 ## 12. Testing
 
 La suite comprende test del calcolatore, Service, Repository, relazioni JPA,
