@@ -14,11 +14,12 @@ partita contano sia il controllo degli obiettivi sia l'impiego efficiente dei
 punti spesi per le unità.
 
 Battle Debrief è un'applicazione web con backend REST che rende consultabili il
-catalogo delle unità e le prestazioni dei giocatori di *Broken Arrow*. Senza
-creare un account, il visitatore inserisce uno Steam ID pubblico e ottiene
+catalogo delle unità e le prestazioni dei giocatori di *Broken Arrow*. Il
+visitatore può consultare liberamente catalogo e statistiche aggregate; creando
+un account collega il proprio Steam ID e ottiene un dossier persistente con
 profilo, rating, statistiche di carriera, partite recenti e unità impiegate. Il
-sistema offre inoltre analytics sul dataset locale, importazione di partite e
-API amministrative dimostrative per verificare sicurezza, ruoli e CRUD.
+sistema offre inoltre importazione di partite e API amministrative per
+verificare sicurezza, ruoli e CRUD.
 
 Il progetto è un monolite modulare sviluppato con Java 21 e Spring Boot. Questa
 scelta mantiene semplice l'avvio, separando comunque le responsabilità dei
@@ -30,9 +31,8 @@ Gli obiettivi sono:
 
 - realizzare API REST tramite Spring Web MVC;
 - suddividere il codice in più moduli funzionali;
-- offrire una ricerca pubblica del giocatore tramite Steam ID;
-- gestire utenti, autenticazione e autorizzazioni nelle API previste dalla
-  consegna;
+- associare in modo univoco lo Steam ID a un account applicativo;
+- gestire utenti, autenticazione JWT, proprietà e autorizzazioni per ruolo;
 - persistere i dati con Spring Data JPA e MySQL;
 - implementare tutte le tipologie di relazione richieste;
 - importare partite evitando duplicati;
@@ -110,8 +110,10 @@ l'importazione di un batch di partite, sono transazionali.
 - **UserService:** regole applicative degli account;
 - **UserRepository e PlayerProfileRepository:** persistenza e ricerca.
 
-Ogni account possiede un profilo giocatore. I campi Steam e commander esterno
-sono opzionali e non condizionano il funzionamento locale.
+Ogni account può possedere un profilo giocatore. Il caso d'uso
+`PUT /api/users/{id}/steam` verifica il profilo presso il provider, impedisce
+che lo stesso Steam ID sia assegnato a due utenti e crea o aggiorna la relazione
+OneToOne con l'account autenticato.
 
 ### 5.3 unit
 
@@ -180,12 +182,13 @@ richiede un container o un package manager separato. Comprende:
 - Command dashboard con indicatori sintetici e ranking;
 - Hangar filtrabile con paginazione e schede di dettaglio;
 - tabelle analytics per unità, mappe e specializzazioni;
-- ricerca pubblica tramite Steam ID e area personale con ELO, storico e unità
-  utilizzate;
+- registrazione, login e collegamento guidato dello Steam ID;
+- area personale con ELO, storico e unità del profilo collegato;
 - grafici Canvas, layout responsive e stati vuoti espliciti.
 
-Il client pubblico non memorizza password o JWT. Conserva nel browser soltanto
-l'ultimo Steam ID ricercato, che non costituisce autenticazione.
+Il client non memorizza password. Conserva il JWT in `sessionStorage`, quindi la
+sessione termina chiudendo la scheda; lo Steam ID non è la credenziale e viene
+persistito dal backend nel profilo appartenente all'utente.
 
 ### 5.8 common
 
@@ -241,10 +244,9 @@ partite. Sono statistiche del campione locale, non globali assolute del gioco.
 
 ## 8. Sicurezza
 
-L'esperienza utente principale non richiede login: `GET /api/steam/**`, catalogo
-e analytics aggregate sono pubblici. Il modulo utenti e le API protette restano
-nel backend perché costituiscono un requisito obbligatorio della consegna e
-permettono di dimostrare autenticazione e autorizzazione. Il loro flusso è
+Catalogo e analytics aggregate sono pubblici. L'area **My Debrief** usa invece
+il modulo utenti reale: dopo login recupera l'account autenticato, legge lo
+Steam ID collegato e carica i dati esterni del solo profilo scelto. Il flusso è
 stateless:
 
 1. login con username e password;
@@ -258,7 +260,8 @@ stateless:
 |---|---|
 | registrazione e login | pubblico |
 | catalogo e dataset analytics | pubblico |
-| debrief tramite Steam ID | pubblico |
+| lettura provider tramite Steam ID | pubblico |
+| collegamento Steam ID all'account | proprietario o admin |
 | health check | pubblico, senza dettagli |
 | account e statistiche personali | proprietario o admin |
 | importazione e match history | proprietario o admin |
@@ -319,7 +322,7 @@ I test usano H2 in modalità MySQL e non dipendono dalla rete.
 Test: 84
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 91,22%
+Copertura linee JaCoCo: 91,49%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -329,9 +332,10 @@ complessiva delle linee scenda sotto il 35%.
 ## 13. Postman
 
 La cartella postman contiene Collection ed environment locale. Le dieci cartelle
-numerate comprendono 31 richieste: health check, flussi pubblici, CRUD,
-autenticazione, ruoli, import, analytics e debrief Steam. Gli script propagano
-automaticamente token e identificativi; le richieste Steam non richiedono JWT.
+numerate comprendono 32 richieste: health check, registrazione, login,
+collegamento Steam, CRUD, ruoli, import, analytics e debrief. Gli script
+propagano automaticamente token e identificativi. La lettura del provider è
+pubblica, mentre il salvataggio dello Steam ID richiede il JWT del proprietario.
 
 ## 14. Scelte progettuali
 
@@ -376,7 +380,7 @@ continua a funzionare sul dataset locale.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 84 test e 91,22% line coverage |
+| Coverage minima | 85 test e 91,49% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |
@@ -412,8 +416,10 @@ Attendere che entrambi i servizi risultino `healthy`, quindi aprire
 3. filtri per fazione, categoria e brigata;
 4. apertura di una scheda unità con costo, HP, velocità, corazza, arma,
    immagine e specializzazioni;
-5. sezione `My Debrief`, inserendo lo Steam ID di esempio
-   `76561198157609957` per mostrare statistiche e match pubblici.
+5. sezione `My Debrief`, registrazione di un account e login automatico;
+6. collegamento dello Steam ID di esempio `76561198157609957`;
+7. caricamento del dossier e permanenza dell'associazione dopo un nuovo login;
+8. pulsante `Cambia Steam ID` e logout.
 
 Lo Steam ID di esempio appartiene a un record pubblico della leaderboard del
 provider. Se il servizio esterno non è disponibile, questa sola verifica può
@@ -442,14 +448,13 @@ la ricreazione del database.
 Per dimostrare Spring Security:
 
 1. chiamare `GET /api/admin/users` senza token e verificare `401`;
-2. eseguire `POST /api/auth/login` con l'account demo amministrativo;
-3. ripetere la richiesta con `Authorization: Bearer <token>` e verificare 200;
-4. autenticarsi come utente normale e verificare `403` sulla stessa risorsa;
-5. eseguire le cartelle `01`, `03` e `05` della Collection Postman per
-   controllare login, ruoli e CRUD del catalogo.
-
-Questi endpoint non sono il login del sito pubblico: sono casi d'uso backend
-conservati per soddisfare e rendere verificabile il requisito di sicurezza.
+2. eseguire `POST /api/auth/register` e poi `POST /api/auth/login`;
+3. collegare Steam con `PUT /api/users/{id}/steam` e il Bearer token ricevuto;
+4. verificare che un altro utente riceva `403` sul medesimo `{id}`;
+5. eseguire il login con l'account demo amministrativo e verificare 200 su
+   `GET /api/admin/users`;
+6. autenticarsi come utente normale e verificare `403` sulla stessa risorsa;
+7. eseguire le cartelle `01`, `02`, `03` e `05` della Collection Postman.
 
 ### 18.4 Persistenza e relazioni
 
@@ -480,9 +485,9 @@ ManyToOne/OneToMany. La OneToOne è verificabile collegando `app_users` e
 ./mvnw clean verify
 ~~~
 
-Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 84 test verdi
+Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 85 test verdi
 e produce `target/site/jacoco/index.html`. Il controllo Maven fallisce
-automaticamente sotto il 35%; la misurazione corrente delle linee è 91,22%.
+automaticamente sotto il 35%; la misurazione corrente delle linee è 91,49%.
 
 ### 18.6 Collection Postman
 

@@ -14,11 +14,10 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - dashboard web responsive servita direttamente da Spring Boot;
 - Hangar con ricerca, filtri, paginazione e dettaglio degli asset;
 - visualizzazioni aggregate per unità, mappe e specializzazioni;
-- area personale pubblica tramite Steam ID con KPI, andamento ELO e
-  after-action report;
+- account personale con registrazione, login JWT e Steam ID collegato;
+- dossier con KPI, andamento ELO e after-action report del profilo collegato;
 - integrazione live con BArmory e fallback automatico BattleGroup;
-- registrazione, JWT e ruoli `USER`/`ADMIN` disponibili nelle API backend per
-  dimostrare i requisiti di sicurezza;
+- registrazione, JWT e ruoli `USER`/`ADMIN` integrati nel servizio;
 - gestione degli utenti e dei profili giocatore;
 - catalogo pubblico completo con 420 unità e 11 specializzazioni;
 - CRUD amministrativo del catalogo;
@@ -208,8 +207,9 @@ non viene generato automaticamente dall'applicazione.
 | `analyst` | `Demo123!` | `USER` |
 
 Le password sono salvate nel database esclusivamente come hash BCrypt. Questi
-account servono a verificare da Postman autenticazione, autorizzazione e ruoli;
-il sito pubblico non richiede login e usa soltanto lo Steam ID.
+account servono a verificare da Postman autenticazione, autorizzazione e ruoli.
+Catalogo e statistiche aggregate sono pubblici; **My Debrief** richiede invece
+un account e associa in modo univoco lo Steam ID al proprietario.
 
 Il catalogo locale comprende il roster e le varianti pubbliche censite da
 BArmory e BA Data. La provenienza e lo script di sincronizzazione riproducibile
@@ -222,7 +222,7 @@ offline: le fonti esterne sono necessarie soltanto per rigenerare il dataset.
 |---|---|---|
 | Health | `GET /actuator/health` | pubblico |
 | Auth | `/api/auth/register`, `/api/auth/login` | pubblico |
-| Utente | `/api/auth/me`, `/api/users/{id}` | proprietario/admin |
+| Utente | `/api/auth/me`, `/api/users/{id}`, `PUT /api/users/{id}/steam` | proprietario/admin |
 | Admin utenti | `/api/admin/users/**` | admin |
 | Catalogo | `/api/units/**`, `/api/specializations` | pubblico |
 | Admin catalogo | `/api/admin/units/**` | admin |
@@ -247,8 +247,8 @@ Selezionare l'environment **Battle Debrief - Local** ed eseguire le cartelle in
 ordine numerico. Gli script Postman salvano automaticamente token JWT e ID
 necessari alle richieste successive.
 
-La collection contiene 31 richieste organizzate in dieci cartelle, inclusi i
-flussi pubblici, autenticati, amministrativi e il debrief Steam.
+La collection contiene 32 richieste organizzate in dieci cartelle, inclusi
+registrazione, login, collegamento Steam, flussi amministrativi e debrief.
 
 ## Test e copertura
 
@@ -274,7 +274,7 @@ Il report JaCoCo viene generato in:
 target/site/jacoco/index.html
 ```
 
-Gli 84 test correnti raggiungono il 91,22% di copertura delle linee e superano
+Gli 85 test correnti raggiungono il 91,49% di copertura delle linee e superano
 il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
 fallire automaticamente la build se la copertura complessiva delle linee
 scende sotto tale soglia.

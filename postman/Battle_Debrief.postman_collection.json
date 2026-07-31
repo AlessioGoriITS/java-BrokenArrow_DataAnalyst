@@ -142,6 +142,35 @@
       "name": "02 - Users",
       "item": [
         {
+          "name": "Link Steam ID to account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Steam profile linked', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.playerProfile.steamId).to.eql(pm.environment.get('steamId'));",
+                  "pm.environment.set('playerId', body.playerProfile.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"steamId\": \"{{steamId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}/steam"
+          }
+        },
+        {
           "name": "Get current user details",
           "event": [
             {
