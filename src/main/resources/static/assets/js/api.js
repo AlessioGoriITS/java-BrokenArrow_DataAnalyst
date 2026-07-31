@@ -1,5 +1,3 @@
-const TOKEN_KEY = "battle-debrief-token";
-
 export class ApiError extends Error {
     constructor(message, status, payload) {
         super(message);
@@ -10,32 +8,11 @@ export class ApiError extends Error {
 }
 
 class ApiClient {
-    constructor() {
-        this.token = sessionStorage.getItem(TOKEN_KEY) || "";
-    }
-
-    isAuthenticated() {
-        return Boolean(this.token);
-    }
-
-    setToken(token) {
-        this.token = token || "";
-        if (this.token) {
-            sessionStorage.setItem(TOKEN_KEY, this.token);
-        } else {
-            sessionStorage.removeItem(TOKEN_KEY);
-        }
-    }
-
     async request(path, options = {}) {
         const headers = new Headers(options.headers || {});
         if (options.body && !headers.has("Content-Type")) {
             headers.set("Content-Type", "application/json");
         }
-        if (this.token && options.auth !== false) {
-            headers.set("Authorization", `Bearer ${this.token}`);
-        }
-
         let response;
         try {
             response = await fetch(path, { ...options, headers });
@@ -49,9 +26,6 @@ class ApiClient {
             : await response.text();
 
         if (!response.ok) {
-            if (response.status === 401 && options.auth !== false) {
-                this.setToken("");
-            }
             throw new ApiError(
                 payload?.message || `Richiesta fallita (${response.status})`,
                 response.status,
@@ -63,22 +37,6 @@ class ApiClient {
 
     health() {
         return this.request("/actuator/health", { auth: false });
-    }
-
-    login(username, password) {
-        return this.request("/api/auth/login", {
-            method: "POST",
-            auth: false,
-            body: JSON.stringify({ username, password })
-        });
-    }
-
-    currentUser() {
-        return this.request("/api/auth/me");
-    }
-
-    user(userId) {
-        return this.request(`/api/users/${userId}`);
     }
 
     units(params = {}) {
@@ -107,23 +65,10 @@ class ApiClient {
         return this.request("/api/analytics/specializations", { auth: false });
     }
 
-    playerAnalysis(playerId) {
-        return this.request(`/api/players/${playerId}/analysis`);
-    }
-
-    playerTrend(playerId, limit = 20) {
+    steamPlayer(steamId, weeks = 8, limit = 20) {
         return this.request(
-            `/api/players/${playerId}/analysis/trend?limit=${limit}`
-        );
-    }
-
-    playerUnits(playerId) {
-        return this.request(`/api/players/${playerId}/units`);
-    }
-
-    playerMatches(playerId, size = 10) {
-        return this.request(
-            `/api/players/${playerId}/matches?page=0&size=${size}`
+            `/api/steam/players/${encodeURIComponent(steamId)}?weeks=${weeks}&limit=${limit}`,
+            { auth: false }
         );
     }
 }

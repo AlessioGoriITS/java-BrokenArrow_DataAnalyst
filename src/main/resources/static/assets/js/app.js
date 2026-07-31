@@ -1,4 +1,4 @@
-import { api, ApiError } from "./api.js";
+import { api } from "./api.js";
 import { drawLineChart } from "./charts.js";
 
 const state = {
@@ -9,8 +9,8 @@ const state = {
     analytics: { units: [], maps: [], specializations: [] },
     unitPage: 0,
     unitLayout: "grid",
-    currentUser: null,
     playerProfile: null,
+    playerLoading: false,
     trend: []
 };
 
@@ -96,7 +96,10 @@ function navigate() {
 
     if (state.route === "hangar") loadHangar(state.unitPage);
     if (state.route === "analytics") loadAnalytics();
-    if (state.route === "player" && api.isAuthenticated()) loadPlayerConsole();
+    if (state.route === "player" && !state.playerProfile && !state.playerLoading) {
+        const steamId = localStorage.getItem("battle-debrief-steam-id");
+        if (steamId) loadPlayerConsole(steamId);
+    }
 }
 
 async function checkHealth() {
@@ -426,116 +429,95 @@ function renderAnalyticsSummary(items) {
     ].map(([label, value]) => `<article class="summary-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
 }
 
-async function restoreSession() {
-    if (!api.isAuthenticated()) return;
-    try {
-        const current = await api.currentUser();
-        state.currentUser = current;
-        setAuthenticatedUi(current);
-    } catch {
-        api.setToken("");
-        setGuestUi();
-    }
-}
-
-async function login(event) {
+async function searchSteamPlayer(event) {
     event.preventDefault();
     const button = $("button[type='submit']", event.currentTarget);
     const errorNode = $("#login-error");
     errorNode.textContent = "";
     button.disabled = true;
-    button.textContent = "Autenticazione…";
+    button.textContent = "Recupero dati…";
+    const steamId = $("#steam-id").value.trim();
     try {
-        const response = await api.login(
-            $("#login-username").value.trim(),
-            $("#login-password").value
-        );
-        api.setToken(response.accessToken);
-        state.currentUser = await api.currentUser();
-        setAuthenticatedUi(state.currentUser);
-        await loadPlayerConsole();
-        showToast("Accesso comandante autorizzato", "success");
+        await loadPlayerConsole(steamId);
+        localStorage.setItem("battle-debrief-steam-id", steamId);
+        showToast("Debrief Steam caricato", "success");
     } catch (error) {
         errorNode.textContent = error.message;
     } finally {
         button.disabled = false;
-        button.textContent = "Autentica comandante";
+        button.textContent = "Carica debrief";
     }
 }
 
-function setAuthenticatedUi(user) {
-    $("#auth-button").textContent = `Esci · ${user.username}`;
+function showPlayerConsole() {
     $("#player-guest").hidden = true;
     $("#player-console").hidden = false;
 }
 
-function setGuestUi() {
-    state.currentUser = null;
+function showSteamSearch() {
     state.playerProfile = null;
-    $("#auth-button").textContent = "Accedi";
     $("#player-guest").hidden = false;
     $("#player-console").hidden = true;
+    $("#steam-id").focus();
 }
 
-function logout() {
-    api.setToken("");
-    setGuestUi();
-    showToast("Sessione terminata");
+function changeSteamPlayer() {
+    localStorage.removeItem("battle-debrief-steam-id");
+    showSteamSearch();
     location.hash = "player";
 }
 
-async function loadPlayerConsole() {
-    if (!api.isAuthenticated()) {
-        setGuestUi();
-        return;
-    }
+async function loadPlayerConsole(steamId) {
+    state.playerLoading = true;
     try {
-        const current = state.currentUser || await api.currentUser();
-        state.currentUser = current;
-        const user = await api.user(current.id);
-        const profile = user.playerProfile;
-        if (!profile) throw new ApiError("Nessun profilo giocatore associato", 404, null);
+        showPlayerConsole();
+        $("#player-display-name").textContent = "Recupero dati…";
+        $("#player-matches").innerHTML = '<tr><td colspan="7">Sincronizzazione della cronologia in corso…</td></tr>';
+        const profile = await api.steamPlayer(steamId);
         state.playerProfile = profile;
-        const [analysis, trend, units, matches] = await Promise.all([
-            api.playerAnalysis(profile.id),
-            api.playerTrend(profile.id, 20),
-            api.playerUnits(profile.id),
-            api.playerMatches(profile.id, 10)
-        ]);
+        const trend = [...profile.recentMatches]
+            .reverse()
+            .map(match => ({ ...match, startedAt: match.endedAt }));
         state.trend = trend;
-        renderPlayerHeader(user, profile, analysis);
-        renderPlayerMetrics(analysis);
+        renderPlayerHeader(profile);
+        renderPlayerMetrics(profile);
         renderPlayerTrend(trend);
-        renderPlayerUnits(units);
-        renderPlayerMatches(matches.content || []);
+        renderPlayerUnits(profile.mostUsedUnits);
+        renderPlayerMatches(profile.recentMatches);
     } catch (error) {
-        if (error.status === 401) {
-            setGuestUi();
-            showToast("Sessione scaduta: accedi di nuovo", "error");
-            return;
-        }
-        showToast(error.message, "error");
-        $("#player-matches").innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
+        showSteamSearch();
+        $("#steam-id").value = steamId;
+        $("#login-error").textContent = error.message;
+        localStorage.removeItem("battle-debrief-steam-id");
+        throw error;
+    } finally {
+        state.playerLoading = false;
     }
 }
 
-function renderPlayerHeader(user, profile, analysis) {
+function renderPlayerHeader(profile) {
     $("#player-avatar").textContent = initials(profile.displayName);
     $("#player-display-name").textContent = profile.displayName;
-    $("#player-handle").textContent = `@${user.username} · ${user.role} · ${profile.externalCommanderId || "LOCAL"}`;
-    $("#player-current-elo").textContent = analysis.currentElo ?? "—";
-    const delta = analysis.eloChange;
+    $("#player-handle").textContent = `STEAM ${profile.steamId} · LVL ${profile.level} · RANK #${profile.leaderboardRank || "—"}`;
+    $("#player-current-elo").textContent = formatDecimal(profile.currentRating, 0);
+    const matches = profile.recentMatches;
+    const latest = matches[0];
+    const oldest = matches[matches.length - 1];
+    const delta = latest?.newRating != null && oldest?.oldRating != null
+        ? Number(latest.newRating) - Number(oldest.oldRating)
+        : null;
     $("#player-elo-delta").textContent = delta === null
         ? "rating non disponibile"
-        : `${delta >= 0 ? "+" : ""}${delta} overall`;
+        : `${delta >= 0 ? "+" : ""}${formatDecimal(delta, 1)} nei match caricati`;
 }
 
-function renderPlayerMetrics(analysis) {
+function renderPlayerMetrics(profile) {
+    const career = profile.career;
     const cards = [
-        ["MATCH", formatNumber(analysis.matchCount), `${formatNumber(analysis.wins)} vittorie`],
-        ["WIN RATE", metricText(analysis.winRate, "%"), `${formatNumber(analysis.losses)} sconfitte`],
-        ["PEAK ELO", analysis.peakElo ?? "—", `initial ${analysis.initialElo ?? "—"}`],
-        ["ECONOMIC K/D", metricText(analysis.economicKd), `${formatNumber(analysis.totalDestroyedValue)} value`]
+        ["MATCH", formatNumber(career.matches), `${formatNumber(career.wins)} vittorie`],
+        ["WIN RATE", career.winRate == null ? "N/D" : `${formatDecimal(career.winRate)}%`, `${formatNumber(career.losses)} sconfitte`],
+        ["K/D", formatDecimal(career.kdRatio), `${formatNumber(career.kills)} / ${formatNumber(career.deaths)}`],
+        ["ZONE CATTURATE", formatNumber(career.capturedZones), `${formatNumber(career.playTimeSeconds / 3600)} ore giocate`]
     ];
     $("#player-metrics").innerHTML = cards.map(([label, value, detail]) => `
         <article class="metric-card"><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>
@@ -548,7 +530,7 @@ function renderPlayerTrend(trend) {
     if (!trend.length) {
         canvas.hidden = true;
         empty.hidden = false;
-        empty.innerHTML = "<div><strong>Nessun trend disponibile</strong><p>Importa una partita con valori ELO per costruire il grafico.</p></div>";
+        empty.innerHTML = "<div><strong>Nessun trend disponibile</strong><p>BArmory non ha restituito partite recenti con valori ELO.</p></div>";
         return;
     }
     canvas.hidden = false;
@@ -560,20 +542,20 @@ function renderPlayerUnits(units) {
     const container = $("#player-units");
     container.classList.remove("loading-block");
     if (!units.length) {
-        container.innerHTML = emptyMarkup("Nessun asset impiegato", "Le unità appariranno dopo l'importazione.");
+        container.innerHTML = emptyMarkup("Nessun asset impiegato", "Non risultano unità nei match recenti.");
         return;
     }
     container.innerHTML = [...units]
-        .sort((a, b) => b.spawnedCount - a.spawnedCount)
+        .sort((a, b) => b.deployed - a.deployed)
         .slice(0, 6)
-        .map(item => `<div class="compact-row"><span><strong>${escapeHtml(item.unitName)}</strong><small>${formatNumber(item.spawnedCount)} schierate · ${formatNumber(item.killsCount)} kill</small></span><b>${metricText(item.economicKd)}×</b></div>`)
+        .map(item => `<div class="compact-row"><span><strong>${escapeHtml(item.unitName)}</strong><small>${formatNumber(item.deployed)} schierate · ${formatNumber(item.refunded)} rimborsate</small></span><b>${formatNumber(item.kills)} KILL</b></div>`)
         .join("");
 }
 
 function renderPlayerMatches(matches) {
     $("#player-matches").innerHTML = matches.length
-        ? matches.map(match => `<tr><td><span class="result-badge ${match.won ? "win" : "loss"}">${match.won ? "W" : "L"}</span></td><td>${escapeHtml(match.mapName)}</td><td>${escapeHtml(match.gameMode)}</td><td>${match.oldRating ?? "—"} → ${match.newRating ?? "—"}</td><td>${formatNumber(match.destructionScore)}</td><td>${formatNumber(match.lossesScore)}</td><td>${formatDate(match.startedAt)}</td></tr>`).join("")
-        : `<tr><td colspan="7">${emptyMarkup("Nessun after action report", "Importa la prima partita per popolare lo storico.")}</td></tr>`;
+        ? matches.map(match => `<tr><td><span class="result-badge ${match.won ? "win" : "loss"}">${match.won ? "W" : "L"}</span></td><td>${escapeHtml(match.mapName)}</td><td>${formatNumber(Math.round(match.durationSeconds / 60))} min</td><td>${formatDecimal(match.oldRating, 0)} → ${formatDecimal(match.newRating, 0)}</td><td>${formatNumber(match.destructionScore)}</td><td>${formatNumber(match.lossesScore)}</td><td>${formatDate(match.endedAt)}</td></tr>`).join("")
+        : `<tr><td colspan="7">${emptyMarkup("Nessun after action report", "BArmory non ha restituito partite nelle settimane analizzate.")}</td></tr>`;
 }
 
 function bindEvents() {
@@ -589,10 +571,10 @@ function bindEvents() {
         $(".main-nav").classList.toggle("is-open", !open);
     });
     $("#auth-button").addEventListener("click", () => {
-        if (api.isAuthenticated()) logout();
-        else location.hash = "player";
+        location.hash = "player";
     });
-    $("#login-form").addEventListener("submit", login);
+    $("#steam-search-form").addEventListener("submit", searchSteamPlayer);
+    $("#change-player").addEventListener("click", changeSteamPlayer);
     $("#unit-filters").addEventListener("submit", event => {
         event.preventDefault();
         loadHangar(0);
@@ -645,8 +627,7 @@ async function boot() {
     await Promise.allSettled([
         checkHealth(),
         loadDashboard(),
-        loadUnitFilterOptions(),
-        restoreSession()
+        loadUnitFilterOptions()
     ]);
 }
 

@@ -30,7 +30,7 @@
             <span class="status-dot"></span>
             <span>LINKING</span>
         </div>
-        <button class="button button-ghost" id="auth-button" type="button">Accedi</button>
+        <button class="button button-ghost" id="auth-button" type="button">Steam ID</button>
         <button class="menu-button" id="menu-button" type="button" aria-label="Apri menu" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
@@ -154,24 +154,23 @@
             <div class="auth-copy">
                 <p class="eyebrow"><span>04</span> PERSONAL OPERATIONS FILE</p>
                 <h1 id="player-title">Il tuo campo di battaglia,<br><em>misurato.</em></h1>
-                <p>Accedi per visualizzare evoluzione ELO, storico partite e rendimento di ogni unità impiegata.</p>
+                <p>Inserisci il tuo Steam ID per visualizzare evoluzione ELO, storico partite e rendimento delle unità impiegate. Non serve creare un account.</p>
                 <ul><li>Trend ELO cronologico</li><li>Win rate e valore economico</li><li>Analisi unità personale</li></ul>
             </div>
-            <form class="login-card" id="login-form">
-                <div class="login-card-head"><span>SECURE ACCESS</span><i></i></div>
-                <h2>Commander login</h2>
-                <p>Usa il tuo account locale Battle Debrief.</p>
-                <label><span>USERNAME</span><input id="login-username" name="username" autocomplete="username" required value="demo"></label>
-                <label><span>PASSWORD</span><input id="login-password" name="password" type="password" autocomplete="current-password" required value="Demo123!"></label>
+            <form class="login-card" id="steam-search-form">
+                <div class="login-card-head"><span>PUBLIC COMMANDER LOOKUP</span><i></i></div>
+                <h2>Trova comandante</h2>
+                <p>Lo Steam ID è il codice numerico di 17 cifre del tuo profilo.</p>
+                <label><span>STEAM ID</span><input id="steam-id" name="steamId" inputmode="numeric" pattern="[0-9]{17}" minlength="17" maxlength="17" autocomplete="off" placeholder="7656119XXXXXXXXXX" required></label>
                 <p class="form-error" id="login-error" role="alert"></p>
-                <button class="button button-primary button-full" type="submit">Autentica comandante</button>
-                <small>Demo locale: demo / Demo123!</small>
+                <button class="button button-primary button-full" type="submit">Carica debrief</button>
+                <small>Nessuna password e nessun account locale.</small>
             </form>
         </div>
 
         <div id="player-console" class="player-console" hidden>
             <div class="player-banner">
-                <div class="player-identity"><div class="avatar" id="player-avatar">DC</div><div><p class="eyebrow"><span>04</span> COMMANDER FILE</p><h1 id="player-display-name">Commander</h1><p id="player-handle">@user · LOCAL</p></div></div>
+                <div class="player-identity"><div class="avatar" id="player-avatar">DC</div><div><p class="eyebrow"><span>04</span> COMMANDER FILE</p><h1 id="player-display-name">Commander</h1><p id="player-handle">STEAM / LIVE</p><button class="text-button" id="change-player" type="button">Cambia Steam ID</button></div></div>
                 <div class="player-elo"><span>CURRENT ELO</span><strong id="player-current-elo">—</strong><small id="player-elo-delta">— overall</small></div>
             </div>
             <div class="page-shell player-shell">
@@ -187,7 +186,7 @@
                     </section>
                     <section class="panel panel-wide">
                         <header class="panel-head"><div><p class="section-code">AFTER ACTION REPORTS</p><h2>Partite recenti</h2></div></header>
-                        <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Esito</th><th>Mappa</th><th>Modalità</th><th>ELO</th><th>Distrutto</th><th>Perso</th><th>Data</th></tr></thead><tbody id="player-matches"></tbody></table></div>
+                        <div class="data-table-wrap"><table class="data-table"><thead><tr><th>Esito</th><th>Mappa</th><th>Durata</th><th>ELO</th><th>Distrutto</th><th>Perso</th><th>Data</th></tr></thead><tbody id="player-matches"></tbody></table></div>
                     </section>
                 </div>
             </div>
