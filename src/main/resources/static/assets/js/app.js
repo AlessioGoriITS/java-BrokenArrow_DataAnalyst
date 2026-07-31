@@ -222,6 +222,7 @@ function readUnitFilters() {
         name: $("#unit-search").value.trim(),
         faction: $("#unit-faction").value,
         category: $("#unit-category").value,
+        specializationId: $("#unit-specialization").value,
         maxCost: $("#unit-max-cost").value,
         page: state.unitPage,
         size: 12,
@@ -248,15 +249,30 @@ async function loadHangar(page = 0) {
 
 async function loadUnitFilterOptions() {
     try {
-        const response = await api.units({
-            page: 0,
-            size: 100,
-            sort: "category,asc"
-        });
+        const [response, specializations] = await Promise.all([
+            api.units({ page: 0, size: 100, sort: "category,asc" }),
+            api.specializations()
+        ]);
         populateCategories(response.content);
+        populateSpecializations(specializations);
     } catch {
         // The Hangar itself will expose a visible error if the API is offline.
     }
+}
+
+function populateSpecializations(specializations) {
+    const select = $("#unit-specialization");
+    const current = select.value;
+    select.innerHTML = '<option value="">Tutte</option>';
+    [...specializations]
+        .sort((left, right) => left.name.localeCompare(right.name, "it"))
+        .forEach(specialization => {
+            const option = document.createElement("option");
+            option.value = specialization.id;
+            option.textContent = `${specialization.name} · ${specialization.faction}`;
+            select.append(option);
+        });
+    select.value = current;
 }
 
 function populateCategories(units) {

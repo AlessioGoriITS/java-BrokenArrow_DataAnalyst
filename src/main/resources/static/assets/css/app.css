@@ -137,7 +137,7 @@ h1 em { color: var(--amber); font-style: normal; }
 .page-hero p:not(.eyebrow) { margin-bottom: 0; color: var(--muted); }
 .hero-counter { display: grid; text-align: right; }.hero-counter strong { font: 800 60px/1 ui-monospace, monospace; color: var(--amber); }.hero-counter span, .scope-badge span { color: var(--muted); font: 700 10px ui-monospace, monospace; letter-spacing: .12em; }
 .scope-badge { padding: 16px 18px; border: 1px solid var(--line); background: rgba(0,0,0,.22); }.scope-badge span, .scope-badge strong { display: block; }.scope-badge strong { margin-top: 7px; color: var(--green); font: 700 11px ui-monospace, monospace; }
-.filter-command { margin: 24px 0 18px; padding: 18px; display: grid; grid-template-columns: 2fr repeat(3, 1fr) auto; gap: 12px; align-items: end; border: 1px solid var(--line); background: var(--panel); }
+.filter-command { margin: 24px 0 18px; padding: 18px; display: grid; grid-template-columns: 2fr repeat(4, 1fr) auto; gap: 12px; align-items: end; border: 1px solid var(--line); background: var(--panel); }
 label { display: grid; gap: 8px; color: var(--muted); font: 700 9px ui-monospace, monospace; letter-spacing: .11em; }
 input, select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 2px; outline: 0; background: #0d1113; color: var(--text); font-size: 12px; }
 input:focus, select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(224,165,43,.1); }

@@ -53,6 +53,10 @@ class ApiClient {
         return this.request(`/api/units/${unitId}`, { auth: false });
     }
 
+    specializations() {
+        return this.request("/api/specializations", { auth: false });
+    }
+
     unitAnalytics() {
         return this.request("/api/analytics/units", { auth: false });
     }
