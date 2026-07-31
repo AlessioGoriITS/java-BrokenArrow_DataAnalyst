@@ -316,10 +316,10 @@ frontend pubblico e health endpoint.
 I test usano H2 in modalità MySQL e non dipendono dalla rete.
 
 ~~~text
-Test: 83
+Test: 84
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 91,41%
+Copertura linee JaCoCo: 91,22%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -376,7 +376,7 @@ continua a funzionare sul dataset locale.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 83 test e 91,41% line coverage |
+| Coverage minima | 84 test e 91,22% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |
@@ -480,9 +480,9 @@ ManyToOne/OneToMany. La OneToOne è verificabile collegando `app_users` e
 ./mvnw clean verify
 ~~~
 
-Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 83 test verdi
+Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 84 test verdi
 e produce `target/site/jacoco/index.html`. Il controllo Maven fallisce
-automaticamente sotto il 35%; la misurazione corrente delle linee è 91,41%.
+automaticamente sotto il 35%; la misurazione corrente delle linee è 91,22%.
 
 ### 18.6 Collection Postman
 
