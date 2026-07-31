@@ -173,7 +173,7 @@ profilo associato all'account. Nella risposta mostrare:
 playerProfile.id
 playerProfile.steamId
 playerProfile.displayName
-playerProfile.currentElo
+playerProfile.externalCommanderId
 ```
 
 La presenza di `playerProfile` dentro la risposta dell'utente rende visibile la
@@ -352,8 +352,10 @@ Eseguire:
 1. `Player debrief by Steam ID`;
 2. `Reject invalid Steam ID`.
 
-La prima richiesta deve restituire identità, carriera, match recenti e unità
-impiegate. Evidenziare inoltre:
+La prima richiesta deve restituire identità, carriera e match recenti. Le unità
+impiegate sono presenti in `mostUsedUnits` soltanto quando il provider rende
+pubblica la telemetria necessaria; un elenco vuoto non dimostra che il
+giocatore non abbia usato unità. Evidenziare inoltre:
 
 ```text
 source

@@ -18,7 +18,6 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - dossier con KPI, andamento ELO e after-action report del profilo collegato;
 - integrazione live con BArmory, fallback BattleGroup e recupero della
   telemetria unità dai file partita pubblici;
-- registrazione, JWT e ruoli `USER`/`ADMIN` integrati nel servizio;
 - gestione degli utenti e dei profili giocatore;
 - catalogo pubblico completo con 420 unità e 11 specializzazioni;
 - CRUD amministrativo del catalogo;
@@ -185,7 +184,15 @@ usare `-KeepRunning` se si desidera lasciare i container attivi dopo il test.
 - MySQL 8;
 - database `battle_debrief` già creato.
 
-Eseguire nell'ordine:
+Da Windows PowerShell eseguire gli script tramite `cmd`, perché l'operatore di
+redirezione `<` non è supportato direttamente da PowerShell:
+
+```powershell
+cmd /c "mysql -u root -p battle_debrief < database\schema.sql"
+cmd /c "mysql -u root -p battle_debrief < database\demo-data.sql"
+```
+
+Su Windows Prompt dei comandi, Linux o macOS eseguire nell'ordine:
 
 ```bash
 mysql -u root -p battle_debrief < database/schema.sql
