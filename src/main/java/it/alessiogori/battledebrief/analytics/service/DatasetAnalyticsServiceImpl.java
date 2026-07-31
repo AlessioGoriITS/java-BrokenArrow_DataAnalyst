@@ -3,6 +3,7 @@ package it.alessiogori.battledebrief.analytics.service;
 import it.alessiogori.battledebrief.analytics.dto.AnalyticsStatus;
 import it.alessiogori.battledebrief.analytics.dto.DatasetUnitAnalyticsResponse;
 import it.alessiogori.battledebrief.analytics.repository.DatasetUnitAggregate;
+import it.alessiogori.battledebrief.common.exception.ResourceNotFoundException;
 import it.alessiogori.battledebrief.match.repository.GameMatchRepository;
 import it.alessiogori.battledebrief.match.repository.UnitMatchPerformanceRepository;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,17 @@ public class DatasetAnalyticsServiceImpl implements DatasetAnalyticsService {
                 .stream()
                 .map(aggregate -> toResponse(aggregate, datasetMatches))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DatasetUnitAnalyticsResponse analyzeUnit(Long unitId) {
+        long datasetMatches = matchRepository.count();
+        return performanceRepository.aggregateDatasetByUnitId(unitId)
+                .map(aggregate -> toResponse(aggregate, datasetMatches))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Unit analytics not found in dataset"
+                ));
     }
 
     private DatasetUnitAnalyticsResponse toResponse(

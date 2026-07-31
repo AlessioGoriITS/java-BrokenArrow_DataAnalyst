@@ -7,4 +7,6 @@ import java.util.List;
 public interface DatasetAnalyticsService {
 
     List<DatasetUnitAnalyticsResponse> analyzeUnits();
+
+    DatasetUnitAnalyticsResponse analyzeUnit(Long unitId);
 }

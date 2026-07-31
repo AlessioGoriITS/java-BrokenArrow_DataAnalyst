@@ -124,6 +124,48 @@ class DatasetAnalyticsApiTests {
                 .andExpect(jsonPath("$[0].survivalRate.value").value(80.0));
     }
 
+    @Test
+    void unitAnalyticsDetailIsPublicAndMissingSamplesReturnNotFound()
+            throws Exception {
+        persistMatch(
+                firstPlayer,
+                "dataset-detail-match",
+                true,
+                unitPerformance(250, 2, 0, 500)
+        );
+        Unit unusedUnit = unitRepository.saveAndFlush(new Unit(
+                "dataset_unused",
+                "Unused Unit",
+                "USA",
+                "VEHICLE",
+                100,
+                "test-1"
+        ));
+
+        mockMvc.perform(get(
+                                "/api/analytics/units/{unitId}",
+                                abrams.getId()
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unitId").value(abrams.getId()))
+                .andExpect(jsonPath("$.sampleMatches").value(1))
+                .andExpect(jsonPath("$.samplePlayers").value(1))
+                .andExpect(jsonPath("$.datasetMatches").value(1))
+                .andExpect(jsonPath("$.playRate.value").value(100.0))
+                .andExpect(jsonPath("$.winRate.value").value(100.0))
+                .andExpect(jsonPath("$.economicKd.status")
+                        .value("NO_LOSSES"));
+
+        mockMvc.perform(get(
+                                "/api/analytics/units/{unitId}",
+                                unusedUnit.getId()
+                        ))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message")
+                        .value("Unit analytics not found in dataset"));
+    }
+
     private UnitMatchPerformance unitPerformance(
             int unitCost,
             int spawned,

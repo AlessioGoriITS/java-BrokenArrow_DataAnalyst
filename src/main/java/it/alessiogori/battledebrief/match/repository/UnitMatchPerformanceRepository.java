@@ -138,4 +138,36 @@ public interface UnitMatchPerformanceRepository
                      performance.unit.name asc
             """)
     List<DatasetUnitAggregate> aggregateDatasetByUnit();
+
+    @Query("""
+            select performance.unit.id as unitId,
+                   performance.unit.externalUnitId as externalUnitId,
+                   performance.unit.name as unitName,
+                   performance.unit.faction as faction,
+                   performance.unit.category as category,
+                   count(distinct performance.matchPerformance.gameMatch.id)
+                       as sampleMatches,
+                   count(distinct performance.matchPerformance.playerProfile.id)
+                       as samplePlayers,
+                   count(performance.id) as samplePerformances,
+                   sum(case when performance.matchPerformance.won = true
+                       then 1L else 0L end) as wonPerformances,
+                   sum(performance.spawnedCount) as spawnedCount,
+                   sum(performance.lostCount) as lostCount,
+                   sum(performance.destroyedValue) as destroyedValue,
+                   sum(performance.unitCost * performance.spawnedCount)
+                       as deploymentCost,
+                   sum(performance.unitCost * performance.lostCount)
+                       as lostValue
+            from UnitMatchPerformance performance
+            where performance.unit.id = :unitId
+            group by performance.unit.id,
+                     performance.unit.externalUnitId,
+                     performance.unit.name,
+                     performance.unit.faction,
+                     performance.unit.category
+            """)
+    Optional<DatasetUnitAggregate> aggregateDatasetByUnitId(
+            @Param("unitId") Long unitId
+    );
 }
