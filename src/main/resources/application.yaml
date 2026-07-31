@@ -13,6 +13,11 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+integration:
+  barmory:
+    base-url: ${BARMORY_BASE_URL:https://barmory.net}
+    version: ${BARMORY_VERSION:8.4}
+
 security:
   jwt:
     issuer: battle-debrief

@@ -88,7 +88,8 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/units/**",
                                 "/api/specializations/**",
-                                "/api/analytics/**"
+                                "/api/analytics/**",
+                                "/api/steam/**"
                         )
                         .permitAll()
                         .requestMatchers("/api/admin/**")
