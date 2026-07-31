@@ -18,6 +18,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -126,6 +127,17 @@ public class Unit {
         if (specializations.add(specialization)) {
             specialization.registerUnit(this);
         }
+    }
+
+    public void replaceSpecializations(
+            Collection<Specialization> newSpecializations
+    ) {
+        Objects.requireNonNull(newSpecializations);
+        for (Specialization specialization : Set.copyOf(specializations)) {
+            specialization.unregisterUnit(this);
+        }
+        specializations.clear();
+        newSpecializations.forEach(this::addSpecialization);
     }
 
     public void updateDetails(

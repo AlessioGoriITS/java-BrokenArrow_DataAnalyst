@@ -60,6 +60,10 @@ public class Specialization {
         units.add(Objects.requireNonNull(unit));
     }
 
+    void unregisterUnit(Unit unit) {
+        units.remove(unit);
+    }
+
     public void updateDetails(
             String name,
             String faction,
