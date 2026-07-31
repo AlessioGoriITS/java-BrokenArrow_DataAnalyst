@@ -17,7 +17,8 @@ Battle Debrief è un'applicazione web con backend REST che rende consultabili il
 catalogo delle unità e le prestazioni dei giocatori di *Broken Arrow*. Il
 visitatore può consultare liberamente catalogo e statistiche aggregate; creando
 un account collega il proprio Steam ID e ottiene un dossier persistente con
-profilo, rating, statistiche di carriera, partite recenti e unità impiegate. Il
+profilo, rating, statistiche di carriera, partite recenti, mappe e brigate. Se
+il provider espone la telemetria completa, mostra anche le unità impiegate. Il
 sistema offre inoltre importazione di partite e API amministrative per
 verificare sicurezza, ruoli e CRUD.
 
@@ -179,11 +180,12 @@ frontend.
 Il frontend single-page è servito dalle risorse statiche di Spring Boot e non
 richiede un container o un package manager separato. Comprende:
 
-- Command dashboard con indicatori sintetici e ranking;
+- Command dashboard personale basata sullo Steam ID collegato;
 - Hangar filtrabile con paginazione e schede di dettaglio;
-- tabelle analytics per unità, mappe e specializzazioni;
+- tabelle analytics personali per unità, mappe e specializzazioni;
 - registrazione, login e collegamento guidato dello Steam ID;
-- area personale con ELO, storico e unità del profilo collegato;
+- area personale con ELO e storico del profilo collegato;
+- logout sempre disponibile nella barra superiore durante la sessione;
 - grafici Canvas, layout responsive e stati vuoti espliciti.
 
 Il client non memorizza password. Conserva il JWT in `sessionStorage`, quindi la
@@ -322,7 +324,7 @@ I test usano H2 in modalità MySQL e non dipendono dalla rete.
 Test: 84
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 91,49%
+Copertura linee JaCoCo: 91,56%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -380,7 +382,7 @@ continua a funzionare sul dataset locale.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 85 test e 91,49% line coverage |
+| Coverage minima | 85 test e 91,56% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |
@@ -411,7 +413,7 @@ docker compose up --build
 Attendere che entrambi i servizi risultino `healthy`, quindi aprire
 `http://localhost:8080` e verificare:
 
-1. dashboard e Hangar caricati senza autenticazione;
+1. Hangar caricato senza autenticazione;
 2. ricerca di `Abrams` nell'Hangar;
 3. filtri per fazione, categoria e brigata;
 4. apertura di una scheda unità con costo, HP, velocità, corazza, arma,
@@ -419,11 +421,15 @@ Attendere che entrambi i servizi risultino `healthy`, quindi aprire
 5. sezione `My Debrief`, registrazione di un account e login automatico;
 6. collegamento dello Steam ID di esempio `76561198157609957`;
 7. caricamento del dossier e permanenza dell'associazione dopo un nuovo login;
-8. pulsante `Cambia Steam ID` e logout.
+8. Command e Analytics valorizzati con i match del medesimo Steam ID;
+9. pulsante `Cambia Steam ID` e logout globale.
 
 Lo Steam ID di esempio appartiene a un record pubblico della leaderboard del
 provider. Se il servizio esterno non è disponibile, questa sola verifica può
 restituire 502 senza compromettere catalogo, database o analytics locali.
+BattleGroup fornisce carriera, match, mappe, fazioni e brigate, ma non sempre il
+dettaglio delle singole unità schierate. In quel caso l'interfaccia mostra il
+limite del provider senza trasformare dati mancanti in falsi zeri.
 
 ### 18.2 Ricerche REST rapide
 
@@ -487,7 +493,7 @@ ManyToOne/OneToMany. La OneToOne è verificabile collegando `app_users` e
 
 Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 85 test verdi
 e produce `target/site/jacoco/index.html`. Il controllo Maven fallisce
-automaticamente sotto il 35%; la misurazione corrente delle linee è 91,49%.
+automaticamente sotto il 35%; la misurazione corrente delle linee è 91,56%.
 
 ### 18.6 Collection Postman
 

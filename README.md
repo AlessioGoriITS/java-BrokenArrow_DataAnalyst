@@ -11,7 +11,7 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 
 ## Funzionalità
 
-- dashboard web responsive servita direttamente da Spring Boot;
+- Command dashboard e Analytics basate sullo Steam ID dell'account;
 - Hangar con ricerca, filtri, paginazione e dettaglio degli asset;
 - visualizzazioni aggregate per unità, mappe e specializzazioni;
 - account personale con registrazione, login JWT e Steam ID collegato;
@@ -274,7 +274,7 @@ Il report JaCoCo viene generato in:
 target/site/jacoco/index.html
 ```
 
-Gli 85 test correnti raggiungono il 91,49% di copertura delle linee e superano
+Gli 85 test correnti raggiungono il 91,56% di copertura delle linee e superano
 il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
 fallire automaticamente la build se la copertura complessiva delle linee
 scende sotto tale soglia.
