@@ -519,6 +519,15 @@
             "header": [],
             "url": "{{baseUrl}}/api/analytics/units/{{unitId}}"
           }
+        },
+        {
+          "name": "Dataset map analytics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/maps"
+          }
         }
       ]
     }

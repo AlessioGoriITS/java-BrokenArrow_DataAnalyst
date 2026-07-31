@@ -166,6 +166,71 @@ class DatasetAnalyticsApiTests {
                         .value("Unit analytics not found in dataset"));
     }
 
+    @Test
+    void mapAnalyticsAggregateMatchesAndArePublic() throws Exception {
+        persistMapMatch(
+                firstPlayer,
+                "map-match-001",
+                "River Crossing",
+                true,
+                1_200,
+                400,
+                2_400,
+                800,
+                1_000
+        );
+        persistMapMatch(
+                secondPlayer,
+                "map-match-002",
+                "River Crossing",
+                false,
+                300,
+                600,
+                500,
+                1_000,
+                500
+        );
+        persistMapMatch(
+                firstPlayer,
+                "map-match-003",
+                "Black Forest",
+                true,
+                0,
+                0,
+                0,
+                0,
+                0
+        );
+
+        mockMvc.perform(get("/api/analytics/maps"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].mapName")
+                        .value("River Crossing"))
+                .andExpect(jsonPath("$[0].sampleMatches").value(2))
+                .andExpect(jsonPath("$[0].samplePlayers").value(2))
+                .andExpect(jsonPath("$[0].datasetMatches").value(3))
+                .andExpect(jsonPath("$[0].destroyedValue").value(1500))
+                .andExpect(jsonPath("$[0].lostValue").value(1000))
+                .andExpect(jsonPath("$[0].damageDealt").value(2900))
+                .andExpect(jsonPath("$[0].damageReceived").value(1800))
+                .andExpect(jsonPath("$[0].deploymentValue").value(1500))
+                .andExpect(jsonPath("$[0].playRate.value").value(66.67))
+                .andExpect(jsonPath("$[0].winRate.value").value(50.0))
+                .andExpect(jsonPath("$[0].economicKd.value").value(1.5))
+                .andExpect(jsonPath("$[0].deploymentEfficiency.value")
+                        .value(1.0))
+                .andExpect(jsonPath("$[0].damageRatio.value")
+                        .value(1.6111))
+                .andExpect(jsonPath("$[1].mapName").value("Black Forest"))
+                .andExpect(jsonPath("$[1].economicKd.status")
+                        .value("NO_LOSSES"))
+                .andExpect(jsonPath("$[1].deploymentEfficiency.status")
+                        .value("NO_DEPLOYMENTS"))
+                .andExpect(jsonPath("$[1].damageRatio.status")
+                        .value("NO_DAMAGE_RECEIVED"));
+    }
+
     private UnitMatchPerformance unitPerformance(
             int unitCost,
             int spawned,
@@ -205,6 +270,47 @@ class DatasetAnalyticsApiTests {
         if (unitPerformance != null) {
             performance.addUnitPerformance(unitPerformance);
         }
+        match.addPerformance(performance);
+        matchRepository.saveAndFlush(match);
+    }
+
+    private void persistMapMatch(
+            PlayerProfile player,
+            String externalId,
+            String mapName,
+            boolean won,
+            long destroyedValue,
+            long lostValue,
+            long damageDealt,
+            long damageReceived,
+            long deploymentValue
+    ) {
+        GameMatch match = new GameMatch(
+                externalId,
+                mapName,
+                "5V5",
+                Instant.parse("2026-07-30T18:00:00Z"),
+                1_800,
+                TeamSide.TEAM_ONE,
+                MatchSource.JSON_IMPORT
+        );
+        MatchPerformance performance = new MatchPerformance(
+                player,
+                TeamSide.TEAM_ONE,
+                won
+        );
+        performance.updateMetrics(
+                null,
+                null,
+                destroyedValue,
+                lostValue,
+                damageDealt,
+                damageReceived,
+                0,
+                deploymentValue,
+                0L,
+                0L
+        );
         match.addPerformance(performance);
         matchRepository.saveAndFlush(match);
     }

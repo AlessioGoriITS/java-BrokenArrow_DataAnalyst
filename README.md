@@ -84,9 +84,10 @@ damageRatio = damageDealt / damageReceived
 Quando un denominatore è zero, l'API restituisce `value: null` e uno stato
 esplicativo come `NO_LOSSES`, `NO_DEPLOYMENTS` o `NO_DAMAGE_RECEIVED`.
 
-Le statistiche esposte da `/api/analytics/**` sono aggregate esclusivamente sui
-dati memorizzati localmente. Ogni risposta include la dimensione del campione e
-non rappresenta una statistica globale assoluta di *Broken Arrow*.
+Le statistiche esposte da `/api/analytics/**` aggregano unità e mappe
+esclusivamente sui dati memorizzati localmente. Ogni risposta include la
+dimensione del campione e non rappresenta una statistica globale assoluta di
+*Broken Arrow*.
 
 ## Avvio con Docker
 
@@ -210,7 +211,7 @@ account sono destinati soltanto alla dimostrazione locale.
 | Match history | `/api/players/{id}/matches` | proprietario/admin |
 | Player analytics | `/api/players/{id}/analysis/**` | proprietario/admin |
 | Unit analytics | `/api/players/{id}/units/**` | proprietario/admin |
-| Dataset analytics | `/api/analytics/units/**` | pubblico |
+| Dataset analytics | `/api/analytics/**` | pubblico |
 
 Le risposte di errore hanno una struttura uniforme con timestamp, stato HTTP,
 codice applicativo, messaggio e path della richiesta.

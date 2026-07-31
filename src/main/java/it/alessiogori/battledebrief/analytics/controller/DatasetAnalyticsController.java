@@ -1,6 +1,7 @@
 package it.alessiogori.battledebrief.analytics.controller;
 
 import it.alessiogori.battledebrief.analytics.dto.DatasetUnitAnalyticsResponse;
+import it.alessiogori.battledebrief.analytics.dto.DatasetMapAnalyticsResponse;
 import it.alessiogori.battledebrief.analytics.service.DatasetAnalyticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,5 +33,10 @@ public class DatasetAnalyticsController {
             @PathVariable Long unitId
     ) {
         return ResponseEntity.ok(analyticsService.analyzeUnit(unitId));
+    }
+
+    @GetMapping("/maps")
+    public ResponseEntity<List<DatasetMapAnalyticsResponse>> findMaps() {
+        return ResponseEntity.ok(analyticsService.analyzeMaps());
     }
 }

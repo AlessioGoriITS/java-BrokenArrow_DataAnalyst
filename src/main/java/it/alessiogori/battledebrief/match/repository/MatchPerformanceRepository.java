@@ -1,5 +1,6 @@
 package it.alessiogori.battledebrief.match.repository;
 
+import it.alessiogori.battledebrief.analytics.repository.DatasetMapAggregate;
 import it.alessiogori.battledebrief.analytics.repository.PlayerCareerAggregate;
 import it.alessiogori.battledebrief.match.entity.MatchPerformance;
 import org.springframework.data.domain.Pageable;
@@ -61,4 +62,27 @@ public interface MatchPerformanceRepository
     findFirstByPlayerProfileIdAndOldRatingIsNotNullOrderByGameMatchStartedAtAsc(
             Long playerProfileId
     );
+
+    @Query("""
+            select performance.gameMatch.mapName as mapName,
+                   count(distinct performance.gameMatch.id) as sampleMatches,
+                   count(distinct performance.playerProfile.id)
+                       as samplePlayers,
+                   count(performance.id) as samplePerformances,
+                   sum(case when performance.won = true
+                       then 1L else 0L end) as wonPerformances,
+                   coalesce(sum(performance.destructionScore), 0L)
+                       as destroyedValue,
+                   coalesce(sum(performance.lossesScore), 0L) as lostValue,
+                   coalesce(sum(performance.damageDealt), 0L) as damageDealt,
+                   coalesce(sum(performance.damageReceived), 0L)
+                       as damageReceived,
+                   coalesce(sum(performance.spawnedUnitScore), 0L)
+                       as deploymentValue
+            from MatchPerformance performance
+            group by performance.gameMatch.mapName
+            order by count(distinct performance.gameMatch.id) desc,
+                     performance.gameMatch.mapName asc
+            """)
+    List<DatasetMapAggregate> aggregateDatasetByMap();
 }
