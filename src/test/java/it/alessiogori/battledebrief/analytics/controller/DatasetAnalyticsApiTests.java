@@ -8,7 +8,9 @@ import it.alessiogori.battledebrief.match.entity.UnitMatchPerformance;
 import it.alessiogori.battledebrief.match.repository.GameMatchRepository;
 import it.alessiogori.battledebrief.player.entity.PlayerProfile;
 import it.alessiogori.battledebrief.player.repository.PlayerProfileRepository;
+import it.alessiogori.battledebrief.unit.entity.Specialization;
 import it.alessiogori.battledebrief.unit.entity.Unit;
+import it.alessiogori.battledebrief.unit.repository.SpecializationRepository;
 import it.alessiogori.battledebrief.unit.repository.UnitRepository;
 import it.alessiogori.battledebrief.user.entity.User;
 import it.alessiogori.battledebrief.user.repository.UserRepository;
@@ -44,6 +46,9 @@ class DatasetAnalyticsApiTests {
 
     @Autowired
     private UnitRepository unitRepository;
+
+    @Autowired
+    private SpecializationRepository specializationRepository;
 
     @Autowired
     private GameMatchRepository matchRepository;
@@ -229,6 +234,68 @@ class DatasetAnalyticsApiTests {
                         .value("NO_DEPLOYMENTS"))
                 .andExpect(jsonPath("$[1].damageRatio.status")
                         .value("NO_DAMAGE_RECEIVED"));
+    }
+
+    @Test
+    void specializationAnalyticsUseManyToManyAssociationsAndArePublic()
+            throws Exception {
+        Specialization armored = specializationRepository.saveAndFlush(
+                new Specialization(
+                        "Armored Brigade",
+                        "USA",
+                        "Heavy armored formation"
+                )
+        );
+        specializationRepository.saveAndFlush(new Specialization(
+                "Unused Brigade",
+                "USA",
+                "Specialization without performance samples"
+        ));
+        abrams.addSpecialization(armored);
+        unitRepository.saveAndFlush(abrams);
+
+        persistMatch(
+                firstPlayer,
+                "specialization-match-001",
+                true,
+                unitPerformance(250, 2, 1, 600)
+        );
+        persistMatch(
+                secondPlayer,
+                "specialization-match-002",
+                false,
+                unitPerformance(300, 3, 0, 400)
+        );
+        persistMatch(
+                firstPlayer,
+                "specialization-match-without-units",
+                true,
+                null
+        );
+
+        mockMvc.perform(get("/api/analytics/specializations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].specializationId")
+                        .value(armored.getId()))
+                .andExpect(jsonPath("$[0].specializationName")
+                        .value("Armored Brigade"))
+                .andExpect(jsonPath("$[0].faction").value("USA"))
+                .andExpect(jsonPath("$[0].sampleMatches").value(2))
+                .andExpect(jsonPath("$[0].samplePlayers").value(2))
+                .andExpect(jsonPath("$[0].sampleUnits").value(1))
+                .andExpect(jsonPath("$[0].datasetMatches").value(3))
+                .andExpect(jsonPath("$[0].spawnedCount").value(5))
+                .andExpect(jsonPath("$[0].lostCount").value(1))
+                .andExpect(jsonPath("$[0].destroyedValue").value(1000))
+                .andExpect(jsonPath("$[0].deploymentCost").value(1400))
+                .andExpect(jsonPath("$[0].lostValue").value(250))
+                .andExpect(jsonPath("$[0].playRate.value").value(66.67))
+                .andExpect(jsonPath("$[0].winRate.value").value(50.0))
+                .andExpect(jsonPath("$[0].economicKd.value").value(4.0))
+                .andExpect(jsonPath("$[0].deploymentEfficiency.value")
+                        .value(0.7143))
+                .andExpect(jsonPath("$[0].survivalRate.value").value(80.0));
     }
 
     private UnitMatchPerformance unitPerformance(

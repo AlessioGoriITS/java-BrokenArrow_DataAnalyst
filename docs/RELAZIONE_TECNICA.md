@@ -128,13 +128,18 @@ presente.
 - **AnalyticsCalculator:** rapporti, percentuali e arrotondamenti;
 - **PlayerAnalyticsService:** statistiche di carriera e trend temporale;
 - **UnitAnalyticsService:** rendimento delle unità per giocatore;
-- **DatasetAnalyticsService:** aggregazioni di unità e mappe sul dataset
-  locale;
+- **DatasetAnalyticsService:** aggregazioni di unità, mappe e specializzazioni
+  sul dataset locale;
 - **PlayerCareerAggregate, PlayerUnitAggregate, DatasetUnitAggregate e
-  DatasetMapAggregate:** proiezioni delle query JPQL;
+  DatasetMapAggregate, DatasetSpecializationAggregate:** proiezioni delle query
+  JPQL;
 - i Controller analytics espongono i rispettivi casi d'uso.
 
 Le aggregazioni vengono eseguite dal database per ridurre memoria e traffico.
+Nelle statistiche per specializzazione, una prestazione di unità contribuisce
+a ogni specializzazione associata. Partite e vittorie sono conteggiate in modo
+distinto all'interno di ciascun gruppo, evitando duplicazioni quando vengono
+schierate più unità della stessa specializzazione.
 
 ### 5.6 common
 
@@ -259,10 +264,10 @@ e health endpoint.
 I test usano H2 in modalità MySQL e non dipendono dalla rete.
 
 ~~~text
-Test: 78
+Test: 79
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 94,48%
+Copertura linee JaCoCo: 94,57%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -293,7 +298,6 @@ Possibili sviluppi futuri:
 
 - Steam OpenID;
 - provider esterno documentato;
-- analytics per specializzazioni;
 - ranking dei giocatori per unità;
 - ricostruzione parziale dei deck;
 - frontend grafico;

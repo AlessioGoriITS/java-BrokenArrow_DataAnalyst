@@ -1,5 +1,6 @@
 package it.alessiogori.battledebrief.match.repository;
 
+import it.alessiogori.battledebrief.analytics.repository.DatasetSpecializationAggregate;
 import it.alessiogori.battledebrief.analytics.repository.DatasetUnitAggregate;
 import it.alessiogori.battledebrief.analytics.repository.PlayerUnitAggregate;
 import it.alessiogori.battledebrief.match.entity.UnitMatchPerformance;
@@ -170,4 +171,39 @@ public interface UnitMatchPerformanceRepository
     Optional<DatasetUnitAggregate> aggregateDatasetByUnitId(
             @Param("unitId") Long unitId
     );
+
+    @Query("""
+            select specialization.id as specializationId,
+                   specialization.name as specializationName,
+                   specialization.faction as faction,
+                   count(distinct performance.matchPerformance.gameMatch.id)
+                       as sampleMatches,
+                   count(distinct performance.matchPerformance.playerProfile.id)
+                       as samplePlayers,
+                   count(distinct performance.unit.id) as sampleUnits,
+                   count(distinct performance.matchPerformance.id)
+                       as samplePerformances,
+                   count(distinct case
+                       when performance.matchPerformance.won = true
+                       then performance.matchPerformance.id else null end)
+                       as wonPerformances,
+                   sum(performance.spawnedCount) as spawnedCount,
+                   sum(performance.lostCount) as lostCount,
+                   sum(performance.destroyedValue) as destroyedValue,
+                   sum(performance.unitCost * performance.spawnedCount)
+                       as deploymentCost,
+                   sum(performance.unitCost * performance.lostCount)
+                       as lostValue
+            from UnitMatchPerformance performance
+            join performance.unit.specializations specialization
+            group by specialization.id,
+                     specialization.name,
+                     specialization.faction
+            order by count(distinct performance.matchPerformance.gameMatch.id)
+                         desc,
+                     specialization.faction asc,
+                     specialization.name asc
+            """)
+    List<DatasetSpecializationAggregate>
+    aggregateDatasetBySpecialization();
 }

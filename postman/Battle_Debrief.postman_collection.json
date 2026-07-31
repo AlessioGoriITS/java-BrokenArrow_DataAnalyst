@@ -528,6 +528,15 @@
             "header": [],
             "url": "{{baseUrl}}/api/analytics/maps"
           }
+        },
+        {
+          "name": "Dataset specialization analytics",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/specializations"
+          }
         }
       ]
     }

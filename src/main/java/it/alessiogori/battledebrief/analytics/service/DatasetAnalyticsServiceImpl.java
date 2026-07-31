@@ -2,8 +2,10 @@ package it.alessiogori.battledebrief.analytics.service;
 
 import it.alessiogori.battledebrief.analytics.dto.AnalyticsStatus;
 import it.alessiogori.battledebrief.analytics.dto.DatasetMapAnalyticsResponse;
+import it.alessiogori.battledebrief.analytics.dto.DatasetSpecializationAnalyticsResponse;
 import it.alessiogori.battledebrief.analytics.dto.DatasetUnitAnalyticsResponse;
 import it.alessiogori.battledebrief.analytics.repository.DatasetMapAggregate;
+import it.alessiogori.battledebrief.analytics.repository.DatasetSpecializationAggregate;
 import it.alessiogori.battledebrief.analytics.repository.DatasetUnitAggregate;
 import it.alessiogori.battledebrief.common.exception.ResourceNotFoundException;
 import it.alessiogori.battledebrief.match.repository.GameMatchRepository;
@@ -63,6 +65,69 @@ public class DatasetAnalyticsServiceImpl implements DatasetAnalyticsService {
                 .stream()
                 .map(aggregate -> toResponse(aggregate, datasetMatches))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DatasetSpecializationAnalyticsResponse>
+    analyzeSpecializations() {
+        long datasetMatches = matchRepository.count();
+        return performanceRepository.aggregateDatasetBySpecialization()
+                .stream()
+                .map(aggregate -> toResponse(aggregate, datasetMatches))
+                .toList();
+    }
+
+    private DatasetSpecializationAnalyticsResponse toResponse(
+            DatasetSpecializationAggregate aggregate,
+            long datasetMatches
+    ) {
+        long sampleMatches = value(aggregate.getSampleMatches());
+        long spawned = value(aggregate.getSpawnedCount());
+        long lost = value(aggregate.getLostCount());
+        long destroyed = value(aggregate.getDestroyedValue());
+        long deploymentCost = value(aggregate.getDeploymentCost());
+        long lostValue = value(aggregate.getLostValue());
+
+        return new DatasetSpecializationAnalyticsResponse(
+                aggregate.getSpecializationId(),
+                aggregate.getSpecializationName(),
+                aggregate.getFaction(),
+                sampleMatches,
+                value(aggregate.getSamplePlayers()),
+                value(aggregate.getSampleUnits()),
+                datasetMatches,
+                spawned,
+                lost,
+                destroyed,
+                deploymentCost,
+                lostValue,
+                calculator.percentage(
+                        sampleMatches,
+                        datasetMatches,
+                        AnalyticsStatus.NO_MATCHES
+                ),
+                calculator.percentage(
+                        value(aggregate.getWonPerformances()),
+                        value(aggregate.getSamplePerformances()),
+                        AnalyticsStatus.NO_MATCHES
+                ),
+                calculator.ratio(
+                        destroyed,
+                        lostValue,
+                        AnalyticsStatus.NO_LOSSES
+                ),
+                calculator.ratio(
+                        destroyed,
+                        deploymentCost,
+                        AnalyticsStatus.NO_DEPLOYMENTS
+                ),
+                calculator.percentage(
+                        spawned - lost,
+                        spawned,
+                        AnalyticsStatus.NO_DEPLOYMENTS
+                )
+        );
     }
 
     private DatasetMapAnalyticsResponse toResponse(

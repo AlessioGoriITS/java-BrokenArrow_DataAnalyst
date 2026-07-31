@@ -84,10 +84,10 @@ damageRatio = damageDealt / damageReceived
 Quando un denominatore è zero, l'API restituisce `value: null` e uno stato
 esplicativo come `NO_LOSSES`, `NO_DEPLOYMENTS` o `NO_DAMAGE_RECEIVED`.
 
-Le statistiche esposte da `/api/analytics/**` aggregano unità e mappe
-esclusivamente sui dati memorizzati localmente. Ogni risposta include la
-dimensione del campione e non rappresenta una statistica globale assoluta di
-*Broken Arrow*.
+Le statistiche esposte da `/api/analytics/**` aggregano unità, mappe e
+specializzazioni esclusivamente sui dati memorizzati localmente. Ogni risposta
+include la dimensione del campione e non rappresenta una statistica globale
+assoluta di *Broken Arrow*.
 
 ## Avvio con Docker
 
