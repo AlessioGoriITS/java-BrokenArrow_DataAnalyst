@@ -345,6 +345,8 @@ numerate comprendono 32 richieste: health check, registrazione, login,
 collegamento Steam, CRUD, ruoli, import, analytics e debrief. Gli script
 propagano automaticamente token e identificativi. La lettura del provider è
 pubblica, mentre il salvataggio dello Steam ID richiede il JWT del proprietario.
+La guida operativa `docs/GUIDA_POSTMAN_CONSEGNA.md` descrive la dimostrazione
+completa delle API senza utilizzare il frontend.
 
 ## 14. Scelte progettuali
 

@@ -265,6 +265,9 @@ necessari alle richieste successive.
 La collection contiene 32 richieste organizzate in dieci cartelle, inclusi
 registrazione, login, collegamento Steam, flussi amministrativi e debrief.
 
+Per la presentazione completa al docente, senza utilizzare il frontend, seguire
+la procedura in [`docs/GUIDA_POSTMAN_CONSEGNA.md`](docs/GUIDA_POSTMAN_CONSEGNA.md).
+
 ## Test e copertura
 
 Su Windows:
