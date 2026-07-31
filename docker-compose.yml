@@ -12,6 +12,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/demo-data.sql:/docker-entrypoint-initdb.d/02-demo-data.sql:ro
     healthcheck:
       test:
         - CMD-SHELL
