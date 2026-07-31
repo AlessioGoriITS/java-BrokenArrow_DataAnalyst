@@ -1,87 +1,138 @@
 # Battle Debrief
 
-Battle Debrief è un'applicazione web con backend REST per importare e
-analizzare le prestazioni dei giocatori di *Broken Arrow*. L'applicazione
-confronta il valore delle unità
-schierate e perse con quello delle unità avversarie distrutte, sia per singolo
-giocatore sia sull'intero dataset locale.
+Battle Debrief è il project work che ho realizzato per il corso Java Backend.
+È un'applicazione Spring Boot che raccoglie dati pubblici di *Broken Arrow* e
+permette di consultare partite, unità e statistiche tramite API REST.
 
-Il progetto è sviluppato come project work Java Backend con Spring Boot, Maven,
-Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
+Il progetto va avviato principalmente con Docker. In questo modo vengono
+preparati insieme sia il backend Java sia il database MySQL, senza dover
+installare e configurare MySQL manualmente.
 
-## Funzionalità
+## Spiegazione tecnica
 
-- Command dashboard e Analytics basate sullo Steam ID dell'account;
-- Hangar con ricerca, filtri, paginazione e dettaglio degli asset;
-- visualizzazioni aggregate per unità, mappe e specializzazioni;
-- account personale con registrazione, login JWT e Steam ID collegato;
-- dossier con KPI, andamento ELO e after-action report del profilo collegato;
-- integrazione live con BArmory, fallback BattleGroup e recupero della
-  telemetria unità dai file partita pubblici;
-- gestione degli utenti e dei profili giocatore;
-- catalogo pubblico completo con 420 unità e 11 specializzazioni;
-- CRUD amministrativo del catalogo;
-- caricamento automatico di un catalogo JSON versionato;
-- importazione transazionale della match history in formato JSON;
-- ricerca paginata e filtrabile delle partite;
-- dettaglio completo di partite e prestazioni;
-- statistiche di carriera e andamento temporale del giocatore;
-- statistiche delle unità utilizzate dal giocatore;
-- statistiche aggregate sul dataset locale;
-- gestione esplicita delle divisioni per zero;
-- health check per l'ambiente Docker.
+*Broken Arrow* è un gioco di strategia militare in tempo reale. Il giocatore
+sceglie una fazione e costruisce un battlegroup usando diverse
+specializzazioni, per esempio unità corazzate, aviotrasportate o di supporto.
+Durante una partita schiera mezzi e reparti come carri armati, fanteria,
+artiglieria, elicotteri e aerei.
 
-## Tecnologie
+Ogni unità ha un costo e caratteristiche differenti. Per capire l'andamento di
+una partita non basta quindi contare quante unità sono state perse o distrutte:
+è utile confrontarne anche il valore, i danni, il punteggio ottenuto e la
+variazione del rating del giocatore.
+
+Battle Debrief serve a organizzare questi dati in un unico backend. Il catalogo
+locale permette di cercare le unità per fazione, categoria, costo e brigata. Le
+partite importate vengono salvate su MySQL e usate per calcolare statistiche
+del singolo giocatore e statistiche aggregate del dataset.
+
+Il collegamento con Steam funziona tramite uno Steam ID pubblico. Il backend
+interroga BArmory e, quando necessario, usa BattleGroup come provider di
+fallback. I provider non pubblicano sempre la telemetria completa delle
+singole unità: in questo caso l'applicazione segnala il dato mancante invece di
+far credere che il giocatore non abbia utilizzato unità.
+
+Per una prova si può usare il mio Steam ID:
+
+```text
+76561198776876377
+```
+
+La disponibilità di questa ricerca dipende dai provider esterni e dalla
+connessione Internet. Il resto del progetto, compresi catalogo, utenti, import
+JSON e analytics locali, continua a funzionare anche senza di essi.
+
+## Funzionalità principali
+
+- registrazione e login con token JWT;
+- ruoli `USER` e `ADMIN`;
+- collegamento univoco tra account e profilo Steam;
+- gestione degli utenti da parte dell'amministratore;
+- catalogo di 420 unità e 11 specializzazioni;
+- ricerca con filtri, ordinamento e paginazione;
+- CRUD amministrativo di unità e specializzazioni;
+- importazione JSON idempotente delle partite;
+- storico e dettaglio delle partite;
+- statistiche di carriera, andamento ELO e utilizzo delle unità;
+- statistiche aggregate per unità, mappe e specializzazioni;
+- gestione uniforme degli errori e validazione degli input;
+- metriche sulle chiamate ai provider esterni;
+- health check dello stack Docker.
+
+## Sito web
+
+La consegna richiede principalmente un backend REST. Ho aggiunto anche un sito
+web per uso personale, utile per consultare i dati senza Postman. Il sito usa
+le stesse API del backend e non contiene una logica separata.
+
+Dopo l'avvio è disponibile all'indirizzo:
+
+```text
+http://localhost:8080
+```
+
+Per la valutazione del backend non è necessario usare il sito: tutte le
+funzioni richieste possono essere mostrate con la Collection Postman inclusa
+nel progetto.
+
+## Tecnologie utilizzate
 
 - Java 21;
 - Spring Boot 3.5;
 - Maven e Maven Wrapper;
 - Spring Web MVC;
 - Spring Data JPA e Hibernate;
-- Spring Security;
-- JWT tramite JJWT;
+- Spring Security e JWT;
 - MySQL 8.4;
-- H2 in modalità compatibilità MySQL per i test;
-- JUnit 5, MockMvc e AssertJ;
-- JaCoCo;
+- H2 per i test automatici;
+- JUnit 5, MockMvc, AssertJ e JaCoCo;
 - Docker e Docker Compose;
-- HTML, CSS e JavaScript senza dipendenze runtime esterne;
-- Postman.
+- HTML, CSS e JavaScript per il sito;
+- Postman per provare le API.
 
 ## Architettura
 
-Il codice è organizzato per modulo funzionale:
+Ho organizzato il codice per moduli funzionali:
 
 ```text
 src/main/java/it/alessiogori/battledebrief
-├── analytics    # calcoli e API statistiche
-├── auth         # login, JWT e configurazione Security
-├── common       # errori e DTO condivisi
-├── integration  # client BArmory e ricerca pubblica tramite Steam ID
-├── match        # importazione e consultazione partite
-├── player       # profili giocatore
-├── unit         # catalogo unità e specializzazioni
-└── user         # gestione utenti e ruoli
-
-src/main/resources/static
-├── index.html   # applicazione web
-└── assets       # stile, client API e grafici Canvas
+├── analytics    # calcolo e API delle statistiche
+├── auth         # registrazione, login, JWT e Spring Security
+├── common       # errori e risposte condivise
+├── integration  # comunicazione con BArmory e BattleGroup
+├── match        # importazione e consultazione delle partite
+├── player       # profili dei giocatori
+├── unit         # catalogo di unità e specializzazioni
+└── user         # utenti, ruoli e collegamento del profilo Steam
 ```
 
-I moduli applicativi sono separati in Controller, Service, Repository, Entity e
-DTO. I Service sono definiti tramite interfacce e implementazioni separate.
+Nei moduli principali sono separati:
+
+- `Controller`, che ricevono le richieste HTTP;
+- `Service`, che contengono la logica applicativa;
+- `Repository`, che comunicano con il database;
+- `Entity`, che rappresentano le tabelle JPA;
+- `DTO`, usati come input e output delle API;
+- `Mapper`, che convertono entità e DTO.
+
+I Service sono definiti tramite interfacce e implementazioni separate. In
+questo modo Controller, logica e persistenza non dipendono direttamente uno
+dall'altro.
 
 ### Relazioni JPA
 
-Il modello implementa tutte le tipologie richieste dalla consegna:
+Il modello contiene tutte le tipologie di relazione richieste:
 
 - `OneToOne`: `User` ↔ `PlayerProfile`;
 - `OneToMany`: `GameMatch` → `MatchPerformance`;
 - `OneToMany`: `MatchPerformance` → `UnitMatchPerformance`;
-- `ManyToOne`: prestazione → partita, profilo e unità;
+- `ManyToOne`: le prestazioni fanno riferimento a partita, profilo e unità;
 - `ManyToMany`: `Unit` ↔ `Specialization`.
 
-## Metriche
+## Come vengono calcolate le statistiche
+
+Le statistiche non sono valori casuali generati dal sito. Sono calcolate dal
+backend usando le prestazioni salvate nel database.
 
 ```text
 deploymentCost = unitCost × spawnedCount
@@ -92,131 +143,96 @@ survivalRate = (spawnedCount - lostCount) / spawnedCount × 100
 damageRatio = damageDealt / damageReceived
 ```
 
-Quando un denominatore è zero, l'API restituisce `value: null` e uno stato
-esplicativo come `NO_LOSSES`, `NO_DEPLOYMENTS` o `NO_DAMAGE_RECEIVED`.
+Quando non è possibile eseguire una divisione, per esempio perché non ci sono
+perdite, l'API restituisce `value: null` insieme a uno stato esplicativo come
+`NO_LOSSES`, `NO_DEPLOYMENTS` o `NO_DAMAGE_RECEIVED`.
 
-Le statistiche esposte da `/api/analytics/**` aggregano unità, mappe e
-specializzazioni esclusivamente sui dati memorizzati localmente. Ogni risposta
-include la dimensione del campione e non rappresenta una statistica globale
-assoluta di *Broken Arrow*.
+Le API `/api/analytics/**` lavorano sui dati presenti nel database locale. Non
+devono quindi essere interpretate come statistiche globali di tutti i
+giocatori di *Broken Arrow*.
 
 ## Avvio con Docker
 
-### Prerequisiti
+### Requisiti
 
-- Docker Desktop oppure Docker Engine;
-- Docker Compose v2.
+- Docker Desktop, oppure Docker Engine;
+- Docker Compose v2;
+- connessione Internet per la prima build e per le ricerche Steam.
 
-Creare il file locale delle variabili d'ambiente:
+Aprire un terminale nella cartella in cui si trova `docker-compose.yml`.
 
-Su Windows PowerShell:
+Creare il file `.env` copiando l'esempio.
+
+PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Su Windows Prompt dei comandi (`cmd`):
+Prompt dei comandi di Windows:
 
 ```bat
 copy .env.example .env
 ```
 
-Su Linux o macOS:
+Linux o macOS:
 
 ```bash
 cp .env.example .env
 ```
 
-I valori forniti sono esclusivamente dimostrativi. Prima di usare il progetto
-fuori dall'ambiente locale, modificare password MySQL e chiave JWT nel file
-`.env`. I timeout dei provider possono essere personalizzati con
-`EXTERNAL_CONNECT_TIMEOUT` e `EXTERNAL_READ_TIMEOUT` usando valori ISO-8601,
-per esempio `PT3S` e `PT10S`.
-
-Costruire e avviare l'intero ambiente:
+Avviare applicazione e database:
 
 ```bash
-docker compose up --build
+docker compose up --build --detach
 ```
 
-Servizi disponibili:
+Controllare lo stato:
+
+```bash
+docker compose ps
+```
+
+Attendere che `app` e `mysql` risultino `healthy`. A questo punto sono
+disponibili:
 
 - sito e API: `http://localhost:8080`;
-- health check: `http://localhost:8080/actuator/health`;
-- MySQL: disponibile soltanto nella rete Docker interna sulla porta `3306`.
+- health check: `http://localhost:8080/actuator/health`.
 
-Arrestare i container mantenendo i dati:
+MySQL non espone una porta verso il computer host: viene usato solamente
+dall'applicazione nella rete interna di Docker.
+
+Per fermare tutto conservando i dati:
 
 ```bash
 docker compose down
 ```
 
-Per ricreare completamente il database e rieseguire gli script di
-inizializzazione:
+Per eliminare anche il database e ripartire da zero:
 
 ```bash
-docker compose down --volumes
-docker compose up --build
+docker compose down --volumes --remove-orphans
+docker compose up --build --detach
 ```
 
-Il primo comando elimina il volume MySQL locale e tutti i dati contenuti al suo
-interno.
+Il primo comando elimina definitivamente il volume MySQL del progetto.
 
-### Smoke test Docker
+### Script di controllo Docker
 
-Su Windows è disponibile uno script che costruisce lo stack, attende gli
-health check, verifica frontend, login admin e catalogo e infine arresta i
-container:
+Su Windows è presente anche uno script che costruisce lo stack, aspetta gli
+health check e prova frontend, login amministratore e catalogo:
 
 ```powershell
 .\scripts\docker-smoke-test.ps1 -ResetData
 ```
 
-L'opzione `-ResetData` elimina preventivamente il volume del progetto ed è
-quindi distruttiva per i dati Docker locali. Ometterla per conservare il volume;
-usare `-KeepRunning` se si desidera lasciare i container attivi dopo il test.
+`-ResetData` elimina il database Docker esistente. Si può omettere per
+conservare i dati oppure aggiungere `-KeepRunning` per lasciare i container
+accesi alla fine.
 
-## Avvio locale con Maven
+## Account dimostrativi
 
-### Prerequisiti
-
-- JDK 21;
-- MySQL 8;
-- database `battle_debrief` già creato.
-
-Da Windows PowerShell eseguire gli script tramite `cmd`, perché l'operatore di
-redirezione `<` non è supportato direttamente da PowerShell:
-
-```powershell
-cmd /c "mysql -u root -p battle_debrief < database\schema.sql"
-cmd /c "mysql -u root -p battle_debrief < database\demo-data.sql"
-```
-
-Su Windows Prompt dei comandi, Linux o macOS eseguire nell'ordine:
-
-```bash
-mysql -u root -p battle_debrief < database/schema.sql
-mysql -u root -p battle_debrief < database/demo-data.sql
-```
-
-Impostare le variabili richieste. Esempio PowerShell:
-
-```powershell
-$env:SPRING_DATASOURCE_URL='jdbc:mysql://localhost:3306/battle_debrief'
-$env:SPRING_DATASOURCE_USERNAME='battle_debrief'
-$env:SPRING_DATASOURCE_PASSWORD='your-password'
-$env:JWT_SECRET='your-base64-secret-of-at-least-32-bytes'
-.\mvnw.cmd spring-boot:run
-```
-
-Su Linux o macOS usare `./mvnw spring-boot:run` dopo aver esportato le stesse
-variabili.
-
-Il profilo `dev` è attivo per impostazione predefinita. Hibernate usa
-`ddl-auto: validate`: lo schema deve quindi essere creato tramite lo script SQL,
-non viene generato automaticamente dall'applicazione.
-
-## Account dimostrativi delle API
+Il database iniziale contiene questi account:
 
 | Username | Password | Ruolo |
 |---|---|---|
@@ -224,66 +240,59 @@ non viene generato automaticamente dall'applicazione.
 | `demo` | `Demo123!` | `USER` |
 | `analyst` | `Demo123!` | `USER` |
 
-Le password sono salvate nel database esclusivamente come hash BCrypt. Questi
-account servono a verificare da Postman autenticazione, autorizzazione e ruoli.
-Catalogo e statistiche aggregate sono pubblici; **My Debrief** richiede invece
-un account e associa in modo univoco lo Steam ID al proprietario.
-
-Il catalogo locale comprende il roster e le varianti pubbliche censite da
-BArmory e BA Data. La provenienza e lo script di sincronizzazione riproducibile
-sono documentati in `docs/CATALOG_SOURCES.md`. Il funzionamento normale resta
-offline: le fonti esterne sono necessarie soltanto per rigenerare il dataset.
+Le password non sono salvate in chiaro nel database, ma come hash BCrypt. Gli
+account servono solo per la dimostrazione locale di autenticazione e ruoli.
 
 ## API principali
 
-| Modulo | Endpoint principali | Accesso |
+| Modulo | Endpoint | Accesso |
 |---|---|---|
 | Health | `GET /actuator/health` | pubblico |
 | Metriche | `GET /actuator/metrics/**` | autenticato |
-| Auth | `/api/auth/register`, `/api/auth/login` | pubblico |
-| Utente | `/api/auth/me`, `/api/users/{id}`, `PUT /api/users/{id}/steam` | proprietario/admin |
-| Admin utenti | `/api/admin/users/**` | admin |
+| Autenticazione | `/api/auth/register`, `/api/auth/login` | pubblico |
+| Utente | `/api/auth/me`, `/api/users/{id}` | proprietario o admin |
+| Collegamento Steam | `PUT /api/users/{id}/steam` | proprietario o admin |
+| Gestione utenti | `/api/admin/users/**` | admin |
 | Catalogo | `/api/units/**`, `/api/specializations` | pubblico |
-| Admin catalogo | `/api/admin/units/**` | admin |
-| Import partite | `POST /api/matches/import` | proprietario/admin |
-| Match history | `/api/players/{id}/matches` | proprietario/admin |
-| Player analytics | `/api/players/{id}/analysis/**` | proprietario/admin |
-| Unit analytics | `/api/players/{id}/units/**` | proprietario/admin |
-| Dataset analytics | `/api/analytics/**` | pubblico |
-| Steam debrief | `/api/steam/players/{steamId}` | pubblico |
+| Gestione catalogo | `/api/admin/units/**` | admin |
+| Import partite | `POST /api/matches/import` | proprietario o admin |
+| Storico partite | `/api/players/{id}/matches` | proprietario o admin |
+| Analytics giocatore | `/api/players/{id}/analysis/**` | proprietario o admin |
+| Analytics unità | `/api/players/{id}/units/**` | proprietario o admin |
+| Analytics dataset | `/api/analytics/**` | pubblico |
+| Ricerca Steam | `/api/steam/players/{steamId}` | pubblico |
 
-Le risposte di errore hanno una struttura uniforme con timestamp, stato HTTP,
-codice applicativo, messaggio e path della richiesta.
+Le risposte di errore hanno sempre una struttura comune con timestamp, stato
+HTTP, codice applicativo, messaggio e percorso della richiesta.
 
-L'import delle partite restituisce `201 Created`, con header `Location`, quando
-salva almeno una nuova partita. Restituisce invece `200 OK` quando tutte le
-partite erano già presenti. La risposta Steam include `diagnostics`, che espone
-durata, match richiesti, caricati e scartati, ID scartati e campi non validi.
-Le metriche Micrometer principali sono:
+L'import restituisce `201 Created` quando salva almeno una partita nuova e
+`200 OK` quando le partite erano già presenti. La risposta della ricerca Steam
+contiene anche `diagnostics`, con provider utilizzato, durata della richiesta,
+match caricati, match scartati e campi non validi.
 
-- `battle.debrief.steam.lookups` per provider ed esito;
-- `battle.debrief.steam.lookup.duration` per la durata;
-- `battle.debrief.steam.matches.discarded` per gli scarti;
-- `battle.debrief.steam.fields.invalid` per i campi non validi.
+## Prova con Postman
 
-## Postman
-
-Importare in Postman:
+Importare in Postman entrambi i file:
 
 - `postman/Battle_Debrief.postman_collection.json`;
 - `postman/Local.postman_environment.json`.
 
-Selezionare l'environment **Battle Debrief - Local** ed eseguire le cartelle in
-ordine numerico. Gli script Postman salvano automaticamente token JWT e ID
-necessari alle richieste successive.
+Selezionare l'environment **Battle Debrief - Local**. Senza questo passaggio
+Postman non sostituisce la variabile `{{baseUrl}}`.
 
-La collection contiene 32 richieste organizzate in dieci cartelle, inclusi
-registrazione, login, collegamento Steam, flussi amministrativi e debrief.
+La Collection contiene 32 richieste in 10 cartelle numerate. Gli script salvano
+automaticamente token JWT e ID prodotti dalle richieste precedenti. Il mio
+Steam ID `76561198776876377` è già inserito nell'environment e può essere
+cambiato prima della prova.
 
-Per la presentazione completa al docente, senza utilizzare il frontend, seguire
-la procedura in [`docs/GUIDA_POSTMAN_CONSEGNA.md`](docs/GUIDA_POSTMAN_CONSEGNA.md).
+La dimostrazione completa da seguire durante la consegna è descritta in
+[`docs/GUIDA_POSTMAN_CONSEGNA.md`](docs/GUIDA_POSTMAN_CONSEGNA.md).
 
-## Test e copertura
+## Test
+
+Maven non serve per avviare normalmente il progetto: per quello viene usato
+Docker. Il Maven Wrapper serve soprattutto per compilare il codice ed eseguire
+i test automatici.
 
 Su Windows:
 
@@ -297,39 +306,38 @@ Su Linux o macOS:
 ./mvnw clean verify
 ```
 
-I test usano H2 in memoria e non richiedono MySQL né accesso alla rete. Sono
-presenti test unitari, test di persistenza e test d'integrazione REST con
+I test usano un database H2 in memoria, quindi non richiedono MySQL o accesso a
+Internet. Sono presenti test unitari, test di persistenza e test REST con
 MockMvc.
 
-Il report JaCoCo viene generato in:
+Attualmente sono presenti 89 test e la copertura delle linee è del 90,31%. La
+build fallisce automaticamente se la copertura scende sotto il 35% richiesto.
+Il report viene generato in:
 
 ```text
 target/site/jacoco/index.html
 ```
 
-Gli 89 test correnti raggiungono il 90,31% di copertura delle linee e superano
-il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
-fallire automaticamente la build se la copertura complessiva delle linee
-scende sotto tale soglia.
-
-## File di consegna
+## File preparati per la consegna
 
 ```text
-database/schema.sql                         # struttura MySQL
-database/demo-data.sql                      # account e profili demo
+pom.xml                                      # progetto Maven
+database/schema.sql                          # struttura MySQL
+database/demo-data.sql                       # dati dimostrativi
 postman/Battle_Debrief.postman_collection.json
 postman/Local.postman_environment.json
 Dockerfile
 docker-compose.yml
 .env.example
-docs/RELAZIONE_TECNICA.md                    # relazione di progetto
+docs/RELAZIONE_TECNICA.md                    # relazione tecnica
+docs/GUIDA_POSTMAN_CONSEGNA.md               # sequenza della dimostrazione
 ```
 
 ## Note di sicurezza
 
-- `.env` è escluso da Git;
-- non vengono commesse chiavi JWT o password di produzione;
-- le credenziali incluse sono soltanto dimostrative;
-- l'applicazione è stateless e autentica le richieste tramite Bearer token;
+- `.env` non viene caricato su Git;
+- le credenziali incluse servono soltanto per la dimostrazione locale;
+- le password degli utenti sono salvate come hash BCrypt;
+- l'applicazione usa sessioni stateless e token Bearer JWT;
 - gli endpoint amministrativi richiedono il ruolo `ADMIN`;
-- utenti normali non possono leggere dati appartenenti ad altri profili.
+- un utente normale non può leggere i dati di un altro profilo.
