@@ -539,6 +539,55 @@
           }
         }
       ]
+    },
+    {
+      "name": "09 - Steam Debrief",
+      "description": "Public live lookup: no Battle Debrief account or JWT is required. The response is supplied by the BArmory community API.",
+      "item": [
+        {
+          "name": "Player debrief by Steam ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Steam debrief available', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Steam identity matches', () => pm.expect(body.steamId).to.eql(pm.environment.get('steamId')));",
+                  "pm.test('Career and match data are present', () => { pm.expect(body).to.have.property('career'); pm.expect(body).to.have.property('recentMatches'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/steam/players/{{steamId}}?weeks=8&limit=20"
+          }
+        },
+        {
+          "name": "Reject invalid Steam ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid Steam ID rejected', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/steam/players/123?weeks=8&limit=20"
+          }
+        }
+      ]
     }
   ]
 }

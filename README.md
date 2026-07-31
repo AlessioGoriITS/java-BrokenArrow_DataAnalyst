@@ -14,9 +14,11 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - dashboard web responsive servita direttamente da Spring Boot;
 - Hangar con ricerca, filtri, paginazione e dettaglio degli asset;
 - visualizzazioni aggregate per unità, mappe e specializzazioni;
-- area personale con KPI, andamento ELO e after-action report;
-- registrazione e autenticazione locale tramite JWT;
-- ruoli `USER` e `ADMIN`;
+- area personale pubblica tramite Steam ID con KPI, andamento ELO e
+  after-action report;
+- integrazione live con il provider comunitario BArmory;
+- registrazione, JWT e ruoli `USER`/`ADMIN` disponibili nelle API backend per
+  dimostrare i requisiti di sicurezza;
 - gestione degli utenti e dei profili giocatore;
 - catalogo pubblico completo con 420 unità e 11 specializzazioni;
 - CRUD amministrativo del catalogo;
@@ -56,7 +58,7 @@ src/main/java/it/alessiogori/battledebrief
 ├── analytics    # calcoli e API statistiche
 ├── auth         # login, JWT e configurazione Security
 ├── common       # errori e DTO condivisi
-├── integration  # punto di estensione per provider esterni
+├── integration  # client BArmory e ricerca pubblica tramite Steam ID
 ├── match        # importazione e consultazione partite
 ├── player       # profili giocatore
 ├── unit         # catalogo unità e specializzazioni
@@ -197,7 +199,7 @@ Il profilo `dev` è attivo per impostazione predefinita. Hibernate usa
 `ddl-auto: validate`: lo schema deve quindi essere creato tramite lo script SQL,
 non viene generato automaticamente dall'applicazione.
 
-## Account dimostrativi
+## Account dimostrativi delle API
 
 | Username | Password | Ruolo |
 |---|---|---|
@@ -206,9 +208,8 @@ non viene generato automaticamente dall'applicazione.
 | `analyst` | `Demo123!` | `USER` |
 
 Le password sono salvate nel database esclusivamente come hash BCrypt. Questi
-account sono destinati soltanto alla dimostrazione locale.
-Il sito propone automaticamente l'account `demo`, che dispone di sei partite
-dimostrative per rendere subito visibili grafici e statistiche.
+account servono a verificare da Postman autenticazione, autorizzazione e ruoli;
+il sito pubblico non richiede login e usa soltanto lo Steam ID.
 
 Il catalogo locale comprende il roster e le varianti pubbliche censite da
 BArmory e BA Data. La provenienza e lo script di sincronizzazione riproducibile
@@ -230,6 +231,7 @@ offline: le fonti esterne sono necessarie soltanto per rigenerare il dataset.
 | Player analytics | `/api/players/{id}/analysis/**` | proprietario/admin |
 | Unit analytics | `/api/players/{id}/units/**` | proprietario/admin |
 | Dataset analytics | `/api/analytics/**` | pubblico |
+| Steam debrief | `/api/steam/players/{steamId}` | pubblico |
 
 Le risposte di errore hanno una struttura uniforme con timestamp, stato HTTP,
 codice applicativo, messaggio e path della richiesta.
@@ -245,8 +247,8 @@ Selezionare l'environment **Battle Debrief - Local** ed eseguire le cartelle in
 ordine numerico. Gli script Postman salvano automaticamente token JWT e ID
 necessari alle richieste successive.
 
-La collection contiene tutti gli endpoint implementati, inclusi i flussi
-pubblici, autenticati e amministrativi.
+La collection contiene 31 richieste organizzate in dieci cartelle, inclusi i
+flussi pubblici, autenticati, amministrativi e il debrief Steam.
 
 ## Test e copertura
 
@@ -272,8 +274,8 @@ Il report JaCoCo viene generato in:
 target/site/jacoco/index.html
 ```
 
-La copertura corrente supera il requisito minimo del 35% previsto dalla
-consegna. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
+Gli 83 test correnti raggiungono il 91,41% di copertura delle linee e superano
+il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
 fallire automaticamente la build se la copertura complessiva delle linee
 scende sotto tale soglia.
 

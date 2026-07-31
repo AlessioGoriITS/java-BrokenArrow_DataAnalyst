@@ -7,11 +7,18 @@
 
 ## 1. Introduzione
 
-Battle Debrief è un'applicazione web con backend REST per la raccolta e
-l'analisi delle prestazioni dei giocatori di *Broken Arrow*. Il sistema gestisce
-utenti e profili, importa
-partite, espone lo storico, amministra un catalogo di unità e calcola statistiche
-personali e aggregate sul dataset locale.
+*Broken Arrow* è un gioco di strategia tattica in tempo reale ambientato in un
+conflitto moderno. Il giocatore costruisce un esercito scegliendo una brigata e
+schiera fanteria, mezzi corazzati, artiglieria, elicotteri e aerei. Durante una
+partita contano sia il controllo degli obiettivi sia l'impiego efficiente dei
+punti spesi per le unità.
+
+Battle Debrief è un'applicazione web con backend REST che rende consultabili il
+catalogo delle unità e le prestazioni dei giocatori di *Broken Arrow*. Senza
+creare un account, il visitatore inserisce uno Steam ID pubblico e ottiene
+profilo, rating, statistiche di carriera, partite recenti e unità impiegate. Il
+sistema offre inoltre analytics sul dataset locale, importazione di partite e
+API amministrative dimostrative per verificare sicurezza, ruoli e CRUD.
 
 Il progetto è un monolite modulare sviluppato con Java 21 e Spring Boot. Questa
 scelta mantiene semplice l'avvio, separando comunque le responsabilità dei
@@ -23,7 +30,9 @@ Gli obiettivi sono:
 
 - realizzare API REST tramite Spring Web MVC;
 - suddividere il codice in più moduli funzionali;
-- gestire utenti, autenticazione e autorizzazioni;
+- offrire una ricerca pubblica del giocatore tramite Steam ID;
+- gestire utenti, autenticazione e autorizzazioni nelle API previste dalla
+  consegna;
 - persistere i dati con Spring Data JPA e MySQL;
 - implementare tutte le tipologie di relazione richieste;
 - importare partite evitando duplicati;
@@ -32,9 +41,9 @@ Gli obiettivi sono:
 - rendere l'ambiente riproducibile tramite Docker;
 - fornire SQL, dati demo e Collection Postman.
 
-Microservizi, Steam OpenID e provider esterni non documentati non rientrano nei
-requisiti obbligatori. L'importazione JSON e il frontend integrato rendono
-l'applicazione utilizzabile offline.
+I microservizi non rientrano nell'implementazione. Catalogo e analytics locali
+restano utilizzabili offline; il solo debrief tramite Steam ID richiede la
+disponibilità dell'API comunitaria BArmory.
 
 ## 3. Tecnologie
 
@@ -149,7 +158,19 @@ a ogni specializzazione associata. Partite e vittorie sono conteggiate in modo
 distinto all'interno di ciascun gruppo, evitando duplicazioni quando vengono
 schierate più unità della stessa specializzazione.
 
-### 5.6 frontend
+### 5.6 integration/barmory
+
+- **BarmoryGateway:** contratto astratto verso il provider;
+- **BarmoryRestClient:** client HTTP, attestazione e rinnovo del token tecnico;
+- **SteamPlayerService:** recupero e aggregazione di carriera, match e unità;
+- **SteamPlayerController:** endpoint pubblico validato per Steam ID;
+- i DTO del modulo isolano il formato esterno dal contratto REST locale.
+
+L'integrazione applica un anti-corruption layer: eventuali variazioni dei JSON
+del provider restano confinate nel modulo e non coinvolgono entità JPA o
+frontend.
+
+### 5.7 frontend
 
 Il frontend single-page è servito dalle risorse statiche di Spring Boot e non
 richiede un container o un package manager separato. Comprende:
@@ -157,14 +178,14 @@ richiede un container o un package manager separato. Comprende:
 - Command dashboard con indicatori sintetici e ranking;
 - Hangar filtrabile con paginazione e schede di dettaglio;
 - tabelle analytics per unità, mappe e specializzazioni;
-- login JWT e area personale con ELO, storico e unità utilizzate;
+- ricerca pubblica tramite Steam ID e area personale con ELO, storico e unità
+  utilizzate;
 - grafici Canvas, layout responsive e stati vuoti espliciti.
 
-Il client usa esclusivamente gli endpoint REST documentati. Il token viene
-conservato nella sessione del browser; autorizzazione e ownership restano
-verificate dal backend.
+Il client pubblico non memorizza password o JWT. Conserva nel browser soltanto
+l'ultimo Steam ID ricercato, che non costituisce autenticazione.
 
-### 5.7 common
+### 5.8 common
 
 - **PageResponse:** formato stabile di paginazione;
 - **ApiException:** errori applicativi tipizzati;
@@ -218,7 +239,11 @@ partite. Sono statistiche del campione locale, non globali assolute del gioco.
 
 ## 8. Sicurezza
 
-Il flusso è stateless:
+L'esperienza utente principale non richiede login: `GET /api/steam/**`, catalogo
+e analytics aggregate sono pubblici. Il modulo utenti e le API protette restano
+nel backend perché costituiscono un requisito obbligatorio della consegna e
+permettono di dimostrare autenticazione e autorizzazione. Il loro flusso è
+stateless:
 
 1. login con username e password;
 2. verifica BCrypt;
@@ -231,6 +256,7 @@ Il flusso è stateless:
 |---|---|
 | registrazione e login | pubblico |
 | catalogo e dataset analytics | pubblico |
+| debrief tramite Steam ID | pubblico |
 | health check | pubblico, senza dettagli |
 | account e statistiche personali | proprietario o admin |
 | importazione e match history | proprietario o admin |
@@ -288,10 +314,10 @@ frontend pubblico e health endpoint.
 I test usano H2 in modalità MySQL e non dipendono dalla rete.
 
 ~~~text
-Test: 82
+Test: 83
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 94,58%
+Copertura linee JaCoCo: 91,41%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -300,9 +326,10 @@ complessiva delle linee scenda sotto il 35%.
 
 ## 13. Postman
 
-La cartella postman contiene Collection ed environment locale. Le nove cartelle
-numerate includono tutti gli endpoint e l'health check. Gli script propagano
-automaticamente token e identificativi.
+La cartella postman contiene Collection ed environment locale. Le dieci cartelle
+numerate comprendono 31 richieste: health check, flussi pubblici, CRUD,
+autenticazione, ruoli, import, analytics e debrief Steam. Gli script propagano
+automaticamente token e identificativi; le richieste Steam non richiedono JWT.
 
 ## 14. Scelte progettuali
 
@@ -321,14 +348,16 @@ automaticamente token e identificativi.
 Possibili sviluppi futuri:
 
 - Steam OpenID;
-- provider esterno documentato;
+- cache persistente e fallback per indisponibilità temporanee del provider;
 - ranking dei giocatori per unità;
 - ricostruzione parziale dei deck;
 - migrazioni Flyway;
 - test Docker end-to-end in CI.
 
-Le API comunitarie non documentate non sono obbligatorie, per preservare
-affidabilità e riproducibilità.
+Il debrief Steam dipende da un servizio comunitario non ufficiale e richiede
+connessione Internet. In caso di indisponibilità il backend restituisce un
+errore controllato `502 EXTERNAL_PROVIDER_ERROR`; il resto dell'applicazione
+continua a funzionare sul dataset locale.
 
 ## 16. Rispondenza alla consegna
 
@@ -336,7 +365,7 @@ affidabilità e riproducibilità.
 |---|---|
 | Maven | pom.xml e Maven Wrapper |
 | MVC REST | Controller Spring Web per modulo |
-| Moduli funzionali | auth, user, player, unit, match, analytics, common |
+| Moduli funzionali | auth, user, player, unit, match, analytics, integration, common |
 | Modulo utenti | entity, repository, service, controller e DTO |
 | Spring Data JPA | entità e Repository |
 | MySQL | driver, profili, schema e container |
@@ -345,7 +374,7 @@ affidabilità e riproducibilità.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 82 test e 94,58% line coverage |
+| Coverage minima | 83 test e 91,41% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |
@@ -355,10 +384,116 @@ affidabilità e riproducibilità.
 ## 17. Conclusioni
 
 Battle Debrief soddisfa i requisiti obbligatori con un backend REST modulare,
-autenticato e persistente. Il dominio dimostra CRUD, relazioni JPA, query
-dinamiche, aggregazioni, sicurezza, validazione e gestione uniforme degli
-errori.
+persistente e protetto dove necessario. Il dominio dimostra CRUD, relazioni
+JPA, query dinamiche, integrazione HTTP, aggregazioni, sicurezza, validazione e
+gestione uniforme degli errori.
 
 Maven Wrapper, SQL, dati demo, Postman e Docker rendono il progetto
 riproducibile. La suite di test offre un ampio margine rispetto alla copertura
 minima richiesta.
+
+## 18. Verifica pratica suggerita al docente
+
+### 18.1 Avvio e affidabilità
+
+Da terminale, nella radice del progetto:
+
+~~~bash
+docker compose up --build
+~~~
+
+Attendere che entrambi i servizi risultino `healthy`, quindi aprire
+`http://localhost:8080` e verificare:
+
+1. dashboard e Hangar caricati senza autenticazione;
+2. ricerca di `Abrams` nell'Hangar;
+3. filtri per fazione, categoria e brigata;
+4. apertura di una scheda unità con costo, HP, velocità, corazza, arma,
+   immagine e specializzazioni;
+5. sezione `My Debrief`, inserendo lo Steam ID di esempio
+   `76561198157609957` per mostrare statistiche e match pubblici.
+
+Lo Steam ID di esempio appartiene a un record pubblico della leaderboard del
+provider. Se il servizio esterno non è disponibile, questa sola verifica può
+restituire 502 senza compromettere catalogo, database o analytics locali.
+
+### 18.2 Ricerche REST rapide
+
+Le seguenti richieste possono essere eseguite dal browser o da Postman:
+
+~~~text
+GET http://localhost:8080/actuator/health
+GET http://localhost:8080/api/units?name=Abrams&page=0&size=20
+GET http://localhost:8080/api/specializations
+GET http://localhost:8080/api/units?specializationId=9&page=0&size=20
+GET http://localhost:8080/api/analytics/units
+GET http://localhost:8080/api/analytics/maps
+GET http://localhost:8080/api/steam/players/76561198157609957?weeks=8&limit=10
+~~~
+
+L'ID della specializzazione va preso dalla risposta di
+`/api/specializations`; il valore `9` è soltanto un esempio e può cambiare dopo
+la ricreazione del database.
+
+### 18.3 Sicurezza e ruoli
+
+Per dimostrare Spring Security:
+
+1. chiamare `GET /api/admin/users` senza token e verificare `401`;
+2. eseguire `POST /api/auth/login` con l'account demo amministrativo;
+3. ripetere la richiesta con `Authorization: Bearer <token>` e verificare 200;
+4. autenticarsi come utente normale e verificare `403` sulla stessa risorsa;
+5. eseguire le cartelle `01`, `03` e `05` della Collection Postman per
+   controllare login, ruoli e CRUD del catalogo.
+
+Questi endpoint non sono il login del sito pubblico: sono casi d'uso backend
+conservati per soddisfare e rendere verificabile il requisito di sicurezza.
+
+### 18.4 Persistenza e relazioni
+
+Nel database MySQL si possono eseguire query semplici come:
+
+~~~sql
+SELECT COUNT(*) FROM game_units;
+
+SELECT u.name AS unit_name, s.name AS brigade
+FROM game_units u
+JOIN unit_specializations us ON us.unit_id = u.id
+JOIN specializations s ON s.id = us.specialization_id
+WHERE s.name LIKE '%Stryker%';
+
+SELECT gm.map_name, mp.won, mp.old_rating, mp.new_rating
+FROM game_matches gm
+JOIN match_performances mp ON mp.game_match_id = gm.id
+ORDER BY gm.started_at DESC;
+~~~
+
+La seconda query rende visibile la relazione ManyToMany; la terza mostra le
+ManyToOne/OneToMany. La OneToOne è verificabile collegando `app_users` e
+`player_profiles` tramite `user_id`.
+
+### 18.5 Test e copertura
+
+~~~bash
+./mvnw clean verify
+~~~
+
+Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 83 test verdi
+e produce `target/site/jacoco/index.html`. Il controllo Maven fallisce
+automaticamente sotto il 35%; la misurazione corrente delle linee è 91,41%.
+
+### 18.6 Collection Postman
+
+Importare la Collection e l'environment presenti in `postman`, selezionare
+`Battle Debrief - Local` ed eseguire le cartelle in ordine. Le prime nove
+verificano il backend locale; `09 - Steam Debrief` verifica l'integrazione live
+e contiene anche il caso negativo di Steam ID non valido.
+
+## 19. Fonti dati esterne
+
+- BArmory: `https://www.barmory.net`;
+- BA Data, Hangar: `https://ba.puliaev.com/hangar`.
+
+Sono progetti comunitari non affiliati agli sviluppatori di *Broken Arrow*.
+Nel repository viene conservata una copia versionata del catalogo per rendere
+ripetibili avvio e test anche senza accesso a tali siti.
