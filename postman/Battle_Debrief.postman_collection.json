@@ -1,0 +1,518 @@
+{
+  "info": {
+    "name": "Battle Debrief API",
+    "description": "End-to-end collection for the Battle Debrief REST API. Run folders in numeric order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00 - Health",
+      "item": [
+        {
+          "name": "Application health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Register local user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const suffix = Date.now();",
+                  "pm.environment.set('username', `postman_user_${suffix}`);",
+                  "pm.environment.set('email', `postman_${suffix}@example.com`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.environment.set('userId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login local user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Authenticated', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('accessToken', pm.response.json().accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login demo admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin authenticated', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('adminToken', pm.response.json().accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Users",
+      "item": [
+        {
+          "name": "Get current user details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User found', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.environment.set('playerId', body.playerProfile.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update current user email",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Admin Users",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{adminToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users?page=0&size=20&sort=id,asc"
+          }
+        },
+        {
+          "name": "Set user role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"USER\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/role"
+          }
+        },
+        {
+          "name": "Enable user",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}/enabled"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Unit Catalog",
+      "item": [
+        {
+          "name": "Search units",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Catalog available', () => pm.response.to.have.status(200));",
+                  "const content = pm.response.json().content;",
+                  "if (content.length) pm.environment.set('catalogUnitId', content[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/units?faction=USA&category=TANK&minCost=0&maxCost=1000&page=0&size=20&sort=name,asc"
+          }
+        },
+        {
+          "name": "Get unit",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/units/{{catalogUnitId}}"
+          }
+        },
+        {
+          "name": "List specializations",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/specializations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Admin Catalog",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{adminToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create specialization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Specialization created', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('specializationId', pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Brigade {{$timestamp}}\",\n  \"faction\": \"USA\",\n  \"description\": \"Temporary specialization created by Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/specializations"
+          }
+        },
+        {
+          "name": "Create unit",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('unitExternalId', `postman_unit_${Date.now()}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unit created', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('createdUnitId', pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalUnitId\": \"{{unitExternalId}}\",\n  \"name\": \"Postman Test Vehicle\",\n  \"faction\": \"USA\",\n  \"category\": \"VEHICLE\",\n  \"baseCost\": 100,\n  \"description\": \"Temporary unit created by Postman\",\n  \"hitPoints\": 500,\n  \"speed\": 60.5,\n  \"armor\": \"LIGHT\",\n  \"mainWeapon\": \"Test cannon\",\n  \"imageUrl\": null,\n  \"datasetVersion\": \"postman-1\",\n  \"specializationIds\": [{{specializationId}}]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/units"
+          }
+        },
+        {
+          "name": "Update unit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Postman Test Vehicle\",\n  \"faction\": \"USA\",\n  \"category\": \"VEHICLE\",\n  \"baseCost\": 110,\n  \"description\": \"Updated through Postman\",\n  \"hitPoints\": 550,\n  \"speed\": 61.0,\n  \"armor\": \"LIGHT\",\n  \"mainWeapon\": \"Test cannon\",\n  \"imageUrl\": null,\n  \"datasetVersion\": \"postman-2\",\n  \"specializationIds\": [{{specializationId}}]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/units/{{createdUnitId}}"
+          }
+        },
+        {
+          "name": "Delete unit",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/units/{{createdUnitId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Match History",
+      "item": [
+        {
+          "name": "Import JSON match",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('externalMatchId', `postman_match_${Date.now()}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Match imported', () => pm.response.to.have.status(200));",
+                  "const ids = pm.response.json().importedMatchIds;",
+                  "if (ids.length) pm.environment.set('matchId', ids[0]);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerProfileId\": {{playerId}},\n  \"matches\": [\n    {\n      \"externalMatchId\": \"{{externalMatchId}}\",\n      \"mapName\": \"River Crossing\",\n      \"gameMode\": \"5V5\",\n      \"startedAt\": \"2026-07-30T18:00:00Z\",\n      \"durationSeconds\": 1800,\n      \"winnerTeam\": \"TEAM_ONE\",\n      \"performance\": {\n        \"team\": \"TEAM_ONE\",\n        \"won\": true,\n        \"oldRating\": 1500,\n        \"newRating\": 1515,\n        \"destructionScore\": 2400,\n        \"lossesScore\": 1200,\n        \"damageDealt\": 5000,\n        \"damageReceived\": 2500,\n        \"objectivesCaptured\": 2,\n        \"spawnedUnitScore\": 1800,\n        \"refundedUnitScore\": 100,\n        \"supplyConsumed\": 500,\n        \"units\": [\n          {\n            \"externalUnitId\": \"usa_m1a1_abrams\",\n            \"unitCost\": 250,\n            \"spawnedCount\": 4,\n            \"lostCount\": 1,\n            \"killsCount\": 3,\n            \"destroyedValue\": 1200,\n            \"damageDealt\": 3000,\n            \"damageReceived\": 1000,\n            \"supplyConsumed\": 200\n          }\n        ]\n      }\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/matches/import"
+          }
+        },
+        {
+          "name": "List player matches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/players/{{playerId}}/matches?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z&won=true&map=River%20Crossing&minElo=0&page=0&size=20&sort=startedAt,desc"
+          }
+        },
+        {
+          "name": "Get match detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/matches/{{matchId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Player Analytics",
+      "item": [
+        {
+          "name": "Player career analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/players/{{playerId}}/analysis"
+          }
+        },
+        {
+          "name": "Player unit analysis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unit analytics available', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.length) pm.environment.set('unitId', body[0].unitId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/players/{{playerId}}/units"
+          }
+        },
+        {
+          "name": "Player unit detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/players/{{playerId}}/units/{{unitId}}"
+          }
+        },
+        {
+          "name": "Player unit match history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/players/{{playerId}}/units/{{unitId}}/matches?page=0&size=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Dataset Analytics",
+      "item": [
+        {
+          "name": "Dataset unit analytics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dataset analytics available', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.length) pm.environment.set('unitId', body[0].unitId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/units"
+          }
+        },
+        {
+          "name": "Dataset unit detail",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/analytics/units/{{unitId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
