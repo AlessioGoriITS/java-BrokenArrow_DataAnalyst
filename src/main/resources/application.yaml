@@ -9,3 +9,8 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+security:
+  jwt:
+    issuer: battle-debrief
+    expiration: ${JWT_EXPIRATION:PT1H}
+    secret: ${JWT_SECRET}
