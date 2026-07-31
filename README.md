@@ -16,7 +16,8 @@ Spring Web MVC, Spring Data JPA, Spring Security, MySQL e Docker.
 - visualizzazioni aggregate per unità, mappe e specializzazioni;
 - account personale con registrazione, login JWT e Steam ID collegato;
 - dossier con KPI, andamento ELO e after-action report del profilo collegato;
-- integrazione live con BArmory e fallback automatico BattleGroup;
+- integrazione live con BArmory, fallback BattleGroup e recupero della
+  telemetria unità dai file partita pubblici;
 - registrazione, JWT e ruoli `USER`/`ADMIN` integrati nel servizio;
 - gestione degli utenti e dei profili giocatore;
 - catalogo pubblico completo con 420 unità e 11 specializzazioni;
@@ -274,7 +275,7 @@ Il report JaCoCo viene generato in:
 target/site/jacoco/index.html
 ```
 
-Gli 85 test correnti raggiungono il 91,56% di copertura delle linee e superano
+Gli 85 test correnti raggiungono il 90,48% di copertura delle linee e superano
 il requisito minimo del 35%. Il goal `jacoco:check`, eseguito durante la fase Maven `verify`, fa
 fallire automaticamente la build se la copertura complessiva delle linee
 scende sotto tale soglia.

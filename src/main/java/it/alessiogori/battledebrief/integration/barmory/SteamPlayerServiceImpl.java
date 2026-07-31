@@ -10,6 +10,8 @@ import it.alessiogori.battledebrief.integration.barmory.dto.SteamUnitPerformance
 import it.alessiogori.battledebrief.unit.entity.Unit;
 import it.alessiogori.battledebrief.unit.repository.UnitRepository;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +30,10 @@ import java.util.Set;
 
 @Service
 public class SteamPlayerServiceImpl implements SteamPlayerService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            SteamPlayerServiceImpl.class
+    );
 
     private final BarmoryGateway gateway;
     private final BattleGroupGateway battleGroupGateway;
@@ -55,6 +61,10 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
         try {
             return findOnBarmory(steamId, weeks, limit);
         } catch (ExternalProviderException exception) {
+            LOGGER.warn(
+                    "BArmory lookup failed; using BattleGroup fallback: {}",
+                    exception.getMessage()
+            );
             return findOnBattleGroup(steamId, limit);
         }
     }
@@ -103,6 +113,13 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
             );
         }
         JsonNode user = response.path("user");
+        JsonNode identity = battleGroupGateway.findPlayer(steamId);
+        long commanderId = identity.path("user").path("id").asLong();
+        if (commanderId == 0) {
+            throw new ResourceNotFoundException(
+                    "No Broken Arrow commander found for this Steam ID"
+            );
+        }
         JsonNode stats = response.path("stats");
         List<SteamMatchResponse> matches = new ArrayList<>();
         response.path("recent").forEach(match -> {
@@ -137,6 +154,22 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 .sorted(Comparator.comparing(SteamMatchResponse::endedAt).reversed())
                 .limit(limit)
                 .toList();
+        List<RawMatch> rawMatches = new ArrayList<>();
+        recentMatches.forEach(match -> {
+            try {
+                rawMatches.add(new RawMatch(
+                        match.matchId(),
+                        battleGroupGateway.findMatch(match.matchId())
+                ));
+            } catch (ExternalProviderException ignored) {
+                // The summary remains useful if an archived match has expired.
+                LOGGER.warn(
+                        "Match telemetry {} could not be loaded: {}",
+                        match.matchId(),
+                        ignored.getMessage()
+                );
+            }
+        });
         int fights = integer(stats, "fightsCount", 0);
         int wins = integer(stats, "winsCount", 0);
         SteamCareerResponse career = new SteamCareerResponse(
@@ -156,7 +189,7 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
         );
         return new SteamPlayerResponse(
                 steamId,
-                user.path("id").asLong(),
+                commanderId,
                 text(response.path("steam"), "personaName",
                         text(user, "name", "Commander")),
                 integer(user, "level", 0),
@@ -164,7 +197,7 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
                 integer(user, "rank", 0),
                 career,
                 recentMatches,
-                List.of(),
+                aggregateUnits(rawMatches, commanderId),
                 "BATTLEGROUP",
                 clock.instant()
         );
@@ -264,8 +297,12 @@ public class SteamPlayerServiceImpl implements SteamPlayerService {
     ) {
         Map<Long, MutableUnitPerformance> totals = new HashMap<>();
         for (RawMatch match : matches) {
-            JsonNode unitData = playerData(match.data(), commanderId)
-                    .path("UnitData");
+            JsonNode unitData;
+            try {
+                unitData = playerData(match.data(), commanderId).path("UnitData");
+            } catch (ResourceNotFoundException ignored) {
+                continue;
+            }
             unitData.forEach(unit -> {
                 long unitId = unit.path("Id").asLong();
                 MutableUnitPerformance total = totals.computeIfAbsent(

@@ -19,6 +19,7 @@ integration:
     version: ${BARMORY_VERSION:8.4}
   battlegroup:
     base-url: ${BATTLEGROUP_BASE_URL:https://battlegroup.website/cgi-bin/api.py}
+    match-base-url: ${BATTLEGROUP_MATCH_BASE_URL:https://s3.brokenarrowgame.tech/fights}
 
 security:
   jwt:

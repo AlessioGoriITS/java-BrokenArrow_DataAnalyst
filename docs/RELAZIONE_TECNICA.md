@@ -168,7 +168,8 @@ schierate più unità della stessa specializzazione.
 - **SteamPlayerService:** recupero e aggregazione di carriera, match e unità;
 - **SteamPlayerController:** endpoint pubblico validato per Steam ID;
 - **BattleGroupRestClient:** fallback automatico quando BArmory rifiuta o non
-  completa la richiesta;
+  completa la richiesta; recupera inoltre il commander ID e i file originali
+  dei match per ricostruire le unità schierate;
 - i DTO del modulo isolano il formato esterno dal contratto REST locale.
 
 L'integrazione applica un anti-corruption layer: eventuali variazioni dei JSON
@@ -324,7 +325,7 @@ I test usano H2 in modalità MySQL e non dipendono dalla rete.
 Test: 84
 Fallimenti: 0
 Errori: 0
-Copertura linee JaCoCo: 91,56%
+Copertura linee JaCoCo: 90,48%
 ~~~
 
 Il requisito minimo del 35% è ampiamente superato. La fase Maven `verify`
@@ -382,7 +383,7 @@ continua a funzionare sul dataset locale.
 | ManyToOne | prestazioni verso match, profilo e unità |
 | ManyToMany | Unit–Specialization |
 | Spring Security | JWT, BCrypt, ruoli e ownership |
-| Coverage minima | 85 test e 91,56% line coverage |
+| Coverage minima | 85 test e 90,48% line coverage |
 | Docker | Dockerfile multi-stage e Compose |
 | Best practice | DTO, validazione, interfacce, transazioni, error handling |
 | Script SQL | schema e dati demo |
@@ -427,9 +428,10 @@ Attendere che entrambi i servizi risultino `healthy`, quindi aprire
 Lo Steam ID di esempio appartiene a un record pubblico della leaderboard del
 provider. Se il servizio esterno non è disponibile, questa sola verifica può
 restituire 502 senza compromettere catalogo, database o analytics locali.
-BattleGroup fornisce carriera, match, mappe, fazioni e brigate, ma non sempre il
-dettaglio delle singole unità schierate. In quel caso l'interfaccia mostra il
-limite del provider senza trasformare dati mancanti in falsi zeri.
+BattleGroup fornisce carriera, match, mappe, fazioni e brigate. Il backend usa
+gli ID partita ricevuti per leggere la telemetria pubblica originale e aggregare
+anche le unità schierate. Un singolo match archiviato o rimosso viene ignorato
+senza annullare tutti gli altri risultati.
 
 ### 18.2 Ricerche REST rapide
 
@@ -493,7 +495,7 @@ ManyToOne/OneToMany. La OneToOne è verificabile collegando `app_users` e
 
 Su Windows usare `mvnw.cmd`. La build deve terminare con tutti gli 85 test verdi
 e produce `target/site/jacoco/index.html`. Il controllo Maven fallisce
-automaticamente sotto il 35%; la misurazione corrente delle linee è 91,56%.
+automaticamente sotto il 35%; la misurazione corrente delle linee è 90,48%.
 
 ### 18.6 Collection Postman
 

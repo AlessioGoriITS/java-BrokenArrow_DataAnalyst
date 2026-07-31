@@ -121,6 +121,22 @@ class SteamPlayerServiceImplTests {
                     "enemyAvgRating":3400,"isRanked":true}]
                 }
                 """));
+        when(battleGroupGateway.findPlayer(STEAM_ID)).thenReturn(json("""
+                {"found":true,"user":{"id":27516}}
+                """));
+        when(battleGroupGateway.findMatch(7469463L)).thenReturn(json("""
+                {
+                  "Data":{"27516":{"Id":27516,"UnitData":{
+                    "100":{"Id":42,"KilledCount":3,
+                      "TotalDamageDealt":700,"TotalDamageReceived":200}
+                  }}}
+                }
+                """));
+        Unit unit = new Unit(
+                "ba_42", "M1A1 Abrams", "USA", "TANK", 240,
+                "Main battle tank"
+        );
+        when(unitRepository.findAll()).thenReturn(List.of(unit));
 
         SteamPlayerResponse result = service.findBySteamId(STEAM_ID, 8, 20);
 
@@ -134,6 +150,10 @@ class SteamPlayerServiceImplTests {
                     "Stryker", "Baltic"
             );
             assertThat(match.ranked()).isTrue();
+        });
+        assertThat(result.mostUsedUnits()).singleElement().satisfies(unitStats -> {
+            assertThat(unitStats.unitName()).isEqualTo("M1A1 Abrams");
+            assertThat(unitStats.kills()).isEqualTo(3);
         });
     }
 
